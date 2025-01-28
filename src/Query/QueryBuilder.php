@@ -14,24 +14,26 @@ final class QueryBuilder
 {
     private PaperConnection $connection;
 
+    private AliasGenerator $aliasGenerator;
+
     private array $select = [];
 
     private array $joins = [];
-
     private int $lastAlias = 0;
 
 
     public function __construct(PaperConnection $connection)
     {
         $this->connection = $connection;
+        $this->aliasGenerator = new AliasGenerator();
     }
 
-    public function select(string $entityName, string $alias, array $properties = []): self
+    public function select(string $entityName, array $properties = []): self
     {
         $this->select = [
             'table' => $this->getTableName($entityName),
             'entityName' => $entityName,
-            'alias' => $alias,
+            'alias' => $this->aliasGenerator->generateAlias($entityName),
             'properties' => $properties
         ];
 //        if ($properties === []) {
@@ -45,16 +47,22 @@ final class QueryBuilder
     }
 
 
-    public function leftJoin(string $fromEntityName, string $property): self
+    public function leftJoin(string $fromEntityName, string $targetEntityName, ?string $property = null): self
     {
-        $column = $this->getRelationsColumns($fromEntityName, $property);
-        $alias = 'r_' . $this->lastAlias++;
-        $this->joins[$alias] = [
-            'type' => 'LEFT',
-            'fromEntityName' => $fromEntityName,
-            'property' => $column->getProperty(),
-            'column' => $column
-        ];
+        $columns = $this->getRelationsColumns($fromEntityName, $targetEntityName, $property);
+
+        foreach ($columns as $column) {
+            $alias = $this->aliasGenerator->generateAlias($targetEntityName);
+            $this->joins[$alias] = [
+                'type' => 'LEFT',
+                'alias' => $alias,
+                'targetEntity' => $targetEntityName,
+                'targetTable' => $this->getTableName($targetEntityName),
+                'fromEntityName' => $fromEntityName,
+                'property' => $column->getProperty(),
+                'column' => $column
+            ];
+        }
         return $this;
     }
 
@@ -63,10 +71,12 @@ final class QueryBuilder
         $columns = $this->getRelationsColumns($fromEntityName, $targetEntityName, $property);
 
         foreach ($columns as $column) {
-            $alias = 'r_' . $this->lastAlias++;
+            $alias = $this->aliasGenerator->generateAlias($targetEntityName);
             $this->joins[$alias] = [
                 'type' => 'INNER',
+                'alias' => $alias,
                 'targetEntity' => $targetEntityName,
+                'targetTable' => $this->getTableName($targetEntityName),
                 'fromEntityName' => $fromEntityName,
                 'property' => $column->getProperty(),
                 'column' => $column
@@ -99,10 +109,11 @@ final class QueryBuilder
 
     /**
      * @param string $entityName
-     * @param string $property
-     * @return JoinColumn|OneToMany
+     * @param string $targetEntityName
+     * @param string|null $property
+     * @return array<JoinColumn|OneToMany>
      */
-    private function getRelationsColumns(string $entityName, string $property)
+    private function getRelationsColumns(string $entityName, string $targetEntityName, ?string $property = null): array
     {
         $relationsColumns = [];
         foreach (ColumnMapper::getColumns($entityName) as $column) {
@@ -116,15 +127,29 @@ final class QueryBuilder
         }
 
         if ($relationsColumns === []) {
-            throw new InvalidArgumentException("Property {$property} not found in class " . $entityName);
+            throw new InvalidArgumentException("Entity {$targetEntityName} not found in class " . $entityName);
         }
 
-        $column = $relationsColumns[$property] ?? null;
-        if ($column === null) {
-            throw new InvalidArgumentException("Entity {$property} not found in class " . $entityName);
+        $columns = [];
+
+        if ($property) {
+            $column = $relationsColumns[$property] ?? null;
+            if ($column) {
+                $columns[] = $column;
+            }
+        } else {
+            foreach ($relationsColumns as  $column) {
+                if ($column->getTargetEntity() === $entityName) {
+                    $columns[] = $column;
+                }
+            }
         }
 
-        return $column;
+        if ($columns === []) {
+            throw new InvalidArgumentException("Entity {$targetEntityName} not found in class " . $entityName);
+        }
+
+        return $columns;
     }
 
     private function getTableName(string $entityName): string
