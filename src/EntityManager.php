@@ -2,11 +2,13 @@
 
 namespace PhpDevCommunity\PaperORM;
 
+use PhpDevCommunity\PaperORM\Cache\EntityMemcachedCache;
 use PhpDevCommunity\PaperORM\Driver\DriverInterface;
 use PhpDevCommunity\PaperORM\Driver\DriverManager;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use PhpDevCommunity\PaperORM\Repository\Repository;
+use PhpDevCommunity\PaperORM\State\StateHashTrackerManager;
 
 class EntityManager
 {
@@ -19,11 +21,16 @@ class EntityManager
      */
     private array $repositories = [];
 
+    private EntityMemcachedCache $cache;
+    private StateHashTrackerManager $stateHashTrackerManager;
+
     public function __construct(array $config = [])
     {
         $driver = $config['driver'];
         $this->connection = DriverManager::getConnection($driver, $config);
         $this->unitOfWork = new UnitOfWork();
+        $this->cache = new EntityMemcachedCache();
+        $this->stateHashTrackerManager = new StateHashTrackerManager();
     }
 
     public function persist(object $entity): void
@@ -61,11 +68,32 @@ class EntityManager
 
     public function getRepository(string $entity): Repository
     {
-        $repository = EntityMapper::getRepositoryName($entity);
-        if (!isset($this->repositories[$repository])) {
-            $this->repositories[$repository] = new $repository($this);
+        $repositoryName = EntityMapper::getRepositoryName($entity);
+        if ($repositoryName === null) {
+            $repositoryName = 'ProxyRepository'.$entity;
         }
-        return  $this->repositories[$repository];
+        if (!isset($this->repositories[$repositoryName])) {
+            if (!class_exists($repositoryName)) {
+                $repository = new class($entity, $this) extends Repository
+                {
+                    private string $entityName;
+                    public function __construct($entityName, EntityManager $em)  {
+                        $this->entityName = $entityName;
+                        parent::__construct($em);
+                    }
+
+                    public function getEntityName(): string
+                    {
+                        return $this->entityName;
+                    }
+                };
+            }else {
+                $repository = new $repositoryName($this);
+            }
+            $this->repositories[$repositoryName] = $repository;
+        }
+
+        return  $this->repositories[$repositoryName];
     }
 
 
@@ -79,6 +107,22 @@ class EntityManager
     public function getConnection(): PaperConnection
     {
         return $this->connection;
+    }
+
+    public function getCache(): EntityMemcachedCache
+    {
+        return $this->cache;
+    }
+
+    public function getStateHashTrackerManager(): StateHashTrackerManager
+    {
+        return $this->stateHashTrackerManager;
+    }
+
+    public function clear(): void
+    {
+        $this->getCache()->clear();
+        $this->getStateHashTrackerManager()->clear();
     }
 
 }

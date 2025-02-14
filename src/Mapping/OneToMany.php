@@ -9,12 +9,14 @@ final class OneToMany
 {
     private string $property;
     private string $targetEntity;
+    private ?string $mappedBy;
     private array $criteria;
     private ObjectStorage $storage;
-    final public function __construct(string $property, string $targetEntity, array $criteria = [])
+    final public function __construct(string $property, string $targetEntity, string $mappedBy = null, array $criteria = [])
     {
         $this->property = $property;
         $this->targetEntity = $targetEntity;
+        $this->mappedBy = $mappedBy;
         $this->criteria = $criteria;
         $this->storage = new ObjectStorage();
     }
@@ -23,6 +25,12 @@ final class OneToMany
     {
         return $this->targetEntity;
     }
+
+    public function getMappedBy(): ?string
+    {
+        return $this->mappedBy;
+    }
+
 
     public function getCriteria(): array
     {

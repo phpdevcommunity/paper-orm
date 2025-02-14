@@ -21,9 +21,4 @@ final class AliasGenerator
 
         return $alias;
     }
-
-    public function getUsedAliases(): array
-    {
-        return $this->usedAliases;
-    }
 }

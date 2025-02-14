@@ -7,7 +7,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 
 final class PrimaryKeyColumnCache
 {
-    private static PrimaryKeyColumnCache $instance;
+    private static ?PrimaryKeyColumnCache $instance = null;
     private array $data = [];
 
     public static function getInstance(): self

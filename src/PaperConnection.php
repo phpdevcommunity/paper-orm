@@ -84,7 +84,7 @@ final class PaperConnection
         return $this->pdo !== null;
     }
 
-    public function close()
+    public function close(): void
     {
         $this->pdo = null;
     }

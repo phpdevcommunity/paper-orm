@@ -15,7 +15,7 @@ final class EntityMapper
         return $class::getTableName();
     }
 
-    static public function getRepositoryName($class): string
+    static public function getRepositoryName($class): ?string
     {
         if (!is_subclass_of($class, EntityInterface::class)) {
             throw new \LogicException(sprintf('%s must implement %s', $class, EntityInterface::class));

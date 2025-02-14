@@ -13,10 +13,7 @@
     "psr-4": {
       "PhpDevCommunity\\PaperORM\\": "src",
       "Test\\PhpDevCommunity\\PaperORM\\": "tests"
-    },
-    "files": [
-      "src/helpers_string.php"
-    ]
+    }
   },
   "require": {
     "php": ">=7.4",

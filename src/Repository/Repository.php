@@ -3,10 +3,14 @@
 namespace PhpDevCommunity\PaperORM\Repository;
 
 use LogicException;
+use PhpDevCommunity\PaperORM\Collection\ObjectStorage;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\Expression\Expr;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
+use PhpDevCommunity\PaperORM\Query\Fetcher;
+use PhpDevCommunity\PaperORM\Query\QueryBuilder;
 use PhpDevCommunity\Sql\QL\JoinQL;
 
 abstract class Repository
@@ -37,29 +41,23 @@ abstract class Repository
      */
     abstract public function getEntityName(): string;
 
-    public function findPk(int $pk): ?object
+    public function findPk(int $pk): Fetcher
     {
         $entityName = $this->getEntityName();
         $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumn($entityName);
         return $this->findOneBy([$primaryKeyColumn => $pk]);
     }
 
-    public function findOneBy(array $arguments = [], array $orderBy = []): ?object
+    public function findOneBy(array $arguments = [], array $orderBy = []): Fetcher
     {
-        $query = $this->generateSelectQuery($arguments, $orderBy, null);
-        $item = $query->fetchAssociative();
-        if ($item === false) {
-            return null;
-        }
-        return $this->hydrate($this->getEntityName(), $item);
+        $query = $this->generateSelectQuery($arguments, $orderBy, 1);
+        return new Fetcher($query, $arguments, false);
     }
 
-    public function findBy(array $arguments = [], array $orderBy = [], ?int $limit = null): ObjectStorage
+    public function findBy(array $arguments = [], array $orderBy = [], ?int $limit = null): Fetcher
     {
         $query = $this->generateSelectQuery($arguments, $orderBy, $limit);
-        $data = $query->fetchAllAssociative();
-
-        return $this->hydrateCollection($data);
+        return new Fetcher($query, $arguments, true);
     }
 
     public function insert(object $entity): int
@@ -86,17 +84,26 @@ abstract class Repository
         }
     }
 
-    public function createQueryBuilder(string $alias = null): JoinQL
+    public function qq(): QueryBuilder
     {
-        $entityName = $this->getEntityName();
-        $columns = ColumnMapper::getColumns($entityName);
-        $alias = $alias ?: $this->getTableName();
-        $columnsToSelect = [];
-        foreach ($columns as $column) {
-            $columnsToSelect[] = sprintf('%s.`%s`', $alias, $column->getName());
+        $queryBuilder = new QueryBuilder($this->em);
+        return $queryBuilder->select($this->getEntityName(), []);
+    }
+
+    private function generateSelectQuery(array $arguments = [], array $orderBy = [], ?int $limit = null): QueryBuilder
+    {
+        $queryBuilder = $this->qq();
+        $alias = $queryBuilder->getPrimaryAlias();
+        foreach ($arguments as $key => $value) {
+            $queryBuilder->where(Expr::equal(sprintf('%s.%s', $alias,$key), ':'.$key));
         }
-        return (new JoinQL($this->em->getConnection()->getPdo(), ColumnMapper::getPrimaryKeyColumn($entityName)))
-            ->select($this->getTableName(), $alias, $columnsToSelect);
+        foreach ($orderBy as $key => $value) {
+            $queryBuilder->orderBy(sprintf('%s.%s', $alias, $key), $value);
+        }
+        if ($limit !== null) {
+            $queryBuilder->setMaxResults($limit);
+        }
+        return $queryBuilder;
     }
 
 

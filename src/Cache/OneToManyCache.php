@@ -7,7 +7,7 @@ use PhpDevCommunity\PaperORM\Mapping\OneToMany;
 
 final class OneToManyCache
 {
-    private static OneToManyCache $instance;
+    private static ?OneToManyCache $instance = null;
     private array $data = [];
 
     public static function getInstance(): self
