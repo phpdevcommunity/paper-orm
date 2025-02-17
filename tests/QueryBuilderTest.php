@@ -6,7 +6,6 @@ use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\Expression\Expr;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Entity\PostTest;
-use Test\PhpDevCommunity\PaperORM\Entity\TagTest;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
 
 class QueryBuilderTest extends TestCase
@@ -42,23 +41,25 @@ class QueryBuilderTest extends TestCase
 //            ->innerJoin(UserTest::class, PostTest::class)
 //            ->where(Expr::equal('us.id', 1))
 //            ->getOneOrNullResult([], false);
-//        ;
 //        print_r($user);
 //        exit();
         $user = $userRepository->findBy()
-            ->join(PostTest::class)
-//            ->joinFrom(PostTest::class, TagTest::class)
+            ->first()
+            ->has('lastPost')
+            ->orderBy('active', 'DESC')
+            ->limit(1)
             ->toArray();
-        print_r($user);
+
+        var_dump($user);
         exit();
 
-        $qb = $userRepository->qq();
-        $qb
-            ->leftJoin(UserTest::class, PostTest::class)
-//            ->leftJoin(PostTest::class, TagTest::class)
-//            ->leftJoin(TagTest::class, PostTest::class)
-            ->where(Expr::equal('po1.id',3))
-            ->orderBy('us.createdAt', 'DESC');
+//        $qb = $userRepository->qb();
+//        $qb
+//            ->leftJoin(UserTest::class, PostTest::class)
+////            ->leftJoin(PostTest::class, TagTest::class)
+////            ->leftJoin(TagTest::class, PostTest::class)
+//            ->where(Expr::equal('po1.id', 3))
+//            ->orderBy('us.createdAt', 'DESC');
 
         $users = $qb->getOneOrNullResult([], false);
         print_r($users);

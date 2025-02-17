@@ -9,6 +9,7 @@ use PhpDevCommunity\PaperORM\Cache\OneToManyCache;
 use PhpDevCommunity\PaperORM\Cache\PrimaryKeyColumnCache;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
+use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
 use ReflectionClass;
@@ -96,6 +97,27 @@ final class ColumnMapper
             }
         }
         return null;
+    }
+
+    /**
+     * @param string $class
+     * @param string $property
+     * @return JoinColumn|OneToMany
+     */
+    static public function getRelationColumnByProperty(string $class, string $property)
+    {
+        $columns = array_merge(self::getColumns($class) , self::getOneToManyRelations($class));
+        foreach ($columns as $column) {
+            if ($column->getProperty() === $property || $column->getName() === $property) {
+                if ($column instanceof JoinColumn) {
+                    return $column;
+                }
+                if ($column instanceof OneToMany) {
+                    return $column;
+                }
+            }
+        }
+        throw new InvalidArgumentException("Property {$property} not found in class or is not a relation " . $class);
     }
 
 

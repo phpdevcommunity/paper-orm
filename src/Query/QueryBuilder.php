@@ -76,6 +76,15 @@ final class QueryBuilder
 
         return $this->select['alias'];
     }
+
+    public function getPrimaryEntityName(): string
+    {
+        if (empty($this->select)) {
+            throw new LogicException('Select must be called before getPrimaryEntityName');
+        }
+
+        return $this->select['entityName'];
+    }
     public function where(string ...$expressions): self
     {
         foreach ($expressions as $expression) {
@@ -148,6 +157,7 @@ final class QueryBuilder
                     'fromTable' => $this->getTableName($fromEntityName),
                     'fromAlias' => $fromAlias,
                     'column' => $column,
+                    'property' => $property,
                     'isOneToMany' => $column instanceof OneToMany
                 ];
             }
@@ -304,14 +314,14 @@ final class QueryBuilder
         return $joinQl;
     }
 
-    private function getAliasesFromEntityName(string $entityName): array
+    public function getAliasesFromEntityName(string $entityName, string $property = null): array
     {
         $aliases = [];
         if (isset($this->select['entityName']) && $this->select['entityName'] === $entityName) {
             $aliases[] = $this->select['alias'];
         }
         foreach ($this->joins as $keyAsAlias => $join) {
-            if ($join['targetEntity'] === $entityName) {
+            if ($join['targetEntity'] === $entityName && $join['property'] === $property) {
                 $aliases[] = $keyAsAlias;
             }
         }

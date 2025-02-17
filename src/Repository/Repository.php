@@ -41,23 +41,25 @@ abstract class Repository
      */
     abstract public function getEntityName(): string;
 
-    public function findPk(int $pk): Fetcher
+    public function find(int $pk): Fetcher
     {
         $entityName = $this->getEntityName();
         $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumn($entityName);
-        return $this->findOneBy([$primaryKeyColumn => $pk]);
+        return $this->findBy()->where(Expr::equal($primaryKeyColumn, $pk))->first();
     }
 
-    public function findOneBy(array $arguments = [], array $orderBy = []): Fetcher
+    public function findBy(array $arguments = []): Fetcher
     {
-        $query = $this->generateSelectQuery($arguments, $orderBy, 1);
-        return new Fetcher($query, $arguments, false);
+        $expressions = [];
+        foreach ($arguments as $key => $value) {
+            $expressions[] = Expr::equal($key, $value);
+        }
+        return (new Fetcher($this->qb(),  true))->where(...$expressions);
     }
 
-    public function findBy(array $arguments = [], array $orderBy = [], ?int $limit = null): Fetcher
+    public function where(Expr ...$expressions): Fetcher
     {
-        $query = $this->generateSelectQuery($arguments, $orderBy, $limit);
-        return new Fetcher($query, $arguments, true);
+        return (new Fetcher($this->qb(), true))->where(...$expressions);
     }
 
     public function insert(object $entity): int
@@ -84,7 +86,7 @@ abstract class Repository
         }
     }
 
-    public function qq(): QueryBuilder
+    public function qb(): QueryBuilder
     {
         $queryBuilder = new QueryBuilder($this->em);
         return $queryBuilder->select($this->getEntityName(), []);
@@ -92,7 +94,7 @@ abstract class Repository
 
     private function generateSelectQuery(array $arguments = [], array $orderBy = [], ?int $limit = null): QueryBuilder
     {
-        $queryBuilder = $this->qq();
+        $queryBuilder = $this->qb();
         $alias = $queryBuilder->getPrimaryAlias();
         foreach ($arguments as $key => $value) {
             $queryBuilder->where(Expr::equal(sprintf('%s.%s', $alias,$key), ':'.$key));
