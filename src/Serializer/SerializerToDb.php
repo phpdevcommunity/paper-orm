@@ -26,7 +26,7 @@ final class SerializerToDb
         $reflection = new \ReflectionClass($entity);
         $dbData = [];
         foreach ($columns as $column) {
-            if (!empty($columnsToSerialize) && !in_array($column->getName(), $columnsToSerialize)) {
+            if (!empty($columnsToSerialize) && !in_array($column->getProperty(), $columnsToSerialize)) {
                 continue;
             }
 

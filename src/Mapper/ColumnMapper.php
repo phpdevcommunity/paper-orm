@@ -17,7 +17,7 @@ use ReflectionClass;
 final class ColumnMapper
 {
 
-    static public function getPrimaryKeyColumn($class): string
+    static public function getPrimaryKeyColumn($class): PrimaryKeyColumn
     {
         if (is_object($class)) {
             $class = get_class($class);
@@ -41,7 +41,11 @@ final class ColumnMapper
 
             $cache->set($class, $primaryKey);
         }
-        return $cache->get($class)->getName();
+        return $cache->get($class);
+    }
+    static public function getPrimaryKeyColumnName($class): string
+    {
+        return self::getPrimaryKeyColumn($class)->getName();
     }
 
     /**
@@ -117,7 +121,7 @@ final class ColumnMapper
                 }
             }
         }
-        throw new InvalidArgumentException("Property {$property} not found in class or is not a relation " . $class);
+        throw new \InvalidArgumentException(sprintf('Property %s not found in class %s or is a collection and cannot be used in an expression', $property, $class));
     }
 
 

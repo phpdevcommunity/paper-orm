@@ -46,6 +46,10 @@ final class OneToMany
         return '\\'.ltrim(get_class($this->getDefaultValue()), '\\');
     }
 
+    public function getName(): string
+    {
+        return $this->getProperty();
+    }
     public function getProperty(): string
     {
         return $this->property;

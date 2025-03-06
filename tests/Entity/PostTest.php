@@ -26,10 +26,12 @@ class PostTest implements EntityInterface
     private ?UserTest $user = null;
 
     private ObjectStorage $tags;
+    private ObjectStorage $comments;
 
     public function __construct()
     {
         $this->tags = new ObjectStorage();
+        $this->comments = new ObjectStorage();
     }
 
     static public function getTableName(): string
@@ -51,6 +53,7 @@ class PostTest implements EntityInterface
             new DateTimeColumn('createdAt', 'created_at'),
             new JoinColumn('user', 'user_id', 'id', UserTest::class),
             new OneToMany('tags', TagTest::class, 'post'),
+            new OneToMany('comments', CommentTest::class, 'post'),
         ];
     }
 
@@ -125,5 +128,14 @@ class PostTest implements EntityInterface
         return $this;
     }
 
+    public function getComments(): ObjectStorage
+    {
+        return $this->comments;
+    }
 
+    public function addComment(CommentTest $comment): PostTest
+    {
+        $this->comments->add($comment);
+        return $this;
+    }
 }

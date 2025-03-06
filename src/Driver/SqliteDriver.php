@@ -4,6 +4,7 @@ namespace PhpDevCommunity\PaperORM\Driver;
 
 use PDO;
 use PhpDevCommunity\PaperORM\PaperConnection;
+use PhpDevCommunity\PaperORM\Pdo\PaperPDO;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use PhpDevCommunity\PaperORM\Platform\SqlitePlatform;
 use PhpDevCommunity\PaperORM\Schema\SqliteSchema;
@@ -13,11 +14,11 @@ final class SqliteDriver implements DriverInterface
     public function connect(
         #[SensitiveParameter]
         array $params
-    ): PDO
+    ): PaperPDO
     {
         $driverOptions = $params['driverOptions'] ?? [];
 
-        $pdo = new PDO(
+        $pdo = new PaperPDO(
             $this->constructPdoDsn(array_intersect_key($params, ['path' => true, 'memory' => true])),
             $params['user'] ?? '',
             $params['password'] ?? '',

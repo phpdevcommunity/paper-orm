@@ -3,15 +3,15 @@
 namespace PhpDevCommunity\PaperORM\Repository;
 
 use LogicException;
-use PhpDevCommunity\PaperORM\Collection\ObjectStorage;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\Expression\Expr;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
+use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
 use PhpDevCommunity\PaperORM\Query\Fetcher;
 use PhpDevCommunity\PaperORM\Query\QueryBuilder;
-use PhpDevCommunity\Sql\QL\JoinQL;
+use PhpDevCommunity\PaperORM\Serializer\SerializerToDb;
 
 abstract class Repository
 {
@@ -44,7 +44,7 @@ abstract class Repository
     public function find(int $pk): Fetcher
     {
         $entityName = $this->getEntityName();
-        $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumn($entityName);
+        $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entityName);
         return $this->findBy()->where(Expr::equal($primaryKeyColumn, $pk))->first();
     }
 
@@ -54,7 +54,7 @@ abstract class Repository
         foreach ($arguments as $key => $value) {
             $expressions[] = Expr::equal($key, $value);
         }
-        return (new Fetcher($this->qb(),  true))->where(...$expressions);
+        return (new Fetcher($this->qb(), true))->where(...$expressions);
     }
 
     public function where(Expr ...$expressions): Fetcher
@@ -72,18 +72,62 @@ abstract class Repository
 
     public function update(object $entityToUpdate): int
     {
-        $this->checkEntity($entityToUpdate);
+        $this->checkEntity($entityToUpdate, true);
         if ($entityToUpdate->getPrimaryKeyValue() === null) {
             throw new LogicException(static::class . sprintf(' Cannot update an entity %s without a primary key ', get_class($entityToUpdate)));
         }
+
+        /**
+         * @var ProxyInterface|EntityInterface $entityToUpdate
+         */
+        if (!$entityToUpdate->__wasModified()) {
+            return 0;
+        }
+
+        $qb = \PhpDevCommunity\Sql\QueryBuilder::update($this->getTableName())
+            ->where(
+                sprintf('`%s` = %s',
+                    ColumnMapper::getPrimaryKeyColumnName($this->getEntityName()),
+                    $entityToUpdate->getPrimaryKeyValue()
+                )
+            );
+        $values = [];
+        foreach ((new SerializerToDb($entityToUpdate))->serialize($entityToUpdate->__getPropertiesModified()) as $key => $value) {
+            $keyWithoutBackticks = str_replace("`", "", $key);
+            $qb->set($key, ":$keyWithoutBackticks");
+            $values[$keyWithoutBackticks] = $value;
+        }
+        $rows = $this->em->getConnection()->executeStatement($qb, $values);
+        if ($rows > 0) {
+            $entityToUpdate->__reset();
+        }
+        return $rows;
+
     }
 
     public function delete(object $entityToDelete): int
     {
-        $this->checkEntity($entityToDelete);
+        /**
+         * @var ProxyInterface|EntityInterface $entityToUpdate
+         */
+        $this->checkEntity($entityToDelete, true);
         if ($entityToDelete->getPrimaryKeyValue() === null) {
             throw new LogicException(static::class . sprintf(' Cannot delete an entity %s without a primary key ', get_class($entityToDelete)));
         }
+
+        $qb = \PhpDevCommunity\Sql\QueryBuilder::delete($this->getTableName())
+            ->where(
+                sprintf('`%s` = %s',
+                    ColumnMapper::getPrimaryKeyColumnName($this->getEntityName()),
+                    $entityToDelete->getPrimaryKeyValue()
+                )
+            );
+
+        $rows =  $this->em->getConnection()->executeStatement($qb);
+        if ($rows > 0) {
+            $entityToDelete->__destroy();
+        }
+        return $rows;
     }
 
     public function qb(): QueryBuilder
@@ -92,28 +136,15 @@ abstract class Repository
         return $queryBuilder->select($this->getEntityName(), []);
     }
 
-    private function generateSelectQuery(array $arguments = [], array $orderBy = [], ?int $limit = null): QueryBuilder
-    {
-        $queryBuilder = $this->qb();
-        $alias = $queryBuilder->getPrimaryAlias();
-        foreach ($arguments as $key => $value) {
-            $queryBuilder->where(Expr::equal(sprintf('%s.%s', $alias,$key), ':'.$key));
-        }
-        foreach ($orderBy as $key => $value) {
-            $queryBuilder->orderBy(sprintf('%s.%s', $alias, $key), $value);
-        }
-        if ($limit !== null) {
-            $queryBuilder->setMaxResults($limit);
-        }
-        return $queryBuilder;
-    }
-
-
-    private function checkEntity(object $entity): void
+    private function checkEntity(object $entity, bool $proxy = false): void
     {
         $entityName = $this->getEntityName();
         if (!$entity instanceof $entityName) {
             throw new LogicException($entityName . ' Cannot insert an entity of type ' . get_class($entity));
+        }
+
+        if ($proxy && (!$entity instanceof ProxyInterface || !$entity->__isInitialized())) {
+            throw new LogicException($entityName . ' Cannot use an entity is not a proxy');
         }
     }
 }

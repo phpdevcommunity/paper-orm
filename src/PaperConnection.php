@@ -5,19 +5,23 @@ namespace PhpDevCommunity\PaperORM;
 use PDO;
 use PDOStatement;
 use PhpDevCommunity\PaperORM\Driver\DriverInterface;
+use PhpDevCommunity\PaperORM\Pdo\PaperPDO;
 
 final class PaperConnection
 {
-    private ?PDO $pdo = null;
+    private ?PaperPDO $pdo = null;
 
     private array $params;
 
     private DriverInterface $driver;
 
+    private bool $debug = false;
+
     public function __construct(DriverInterface $driver, array $params)
     {
         $this->params = $params;
         $this->driver = $driver;
+        $this->debug = $params['debug'] ?? false;
     }
 
     public function executeStatement(string $query, array $params = []): int
@@ -29,6 +33,9 @@ final class PaperConnection
     public function executeQuery(string $query, array $params = []): PDOStatement
     {
         $db = $this->getPdo()->prepare($query);
+        if ($db === false) {
+            throw new \Exception($this->getPdo()->errorInfo()[2]);
+        }
         foreach ($params as $key => $value) {
             if (is_string($key)) {
                 $db->bindValue(':' . $key, $value);
@@ -63,7 +70,7 @@ final class PaperConnection
         return $this->driver;
     }
 
-    public function getPdo(): PDO
+    public function getPdo(): PaperPDO
     {
         $this->connect();
         return $this->pdo;
@@ -73,6 +80,9 @@ final class PaperConnection
     {
         if ($this->pdo === null) {
             $this->pdo = $this->driver->connect($this->params);
+            if ($this->debug) {
+                $this->pdo->enableSqlDebugger();
+            }
             return true;
         }
 

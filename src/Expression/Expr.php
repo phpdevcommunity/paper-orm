@@ -108,6 +108,10 @@ class Expr
 
     public function getBoundValue()
     {
+        if ($this->getValue() === null) {
+            return [];
+        }
+        
         if ($this->operator === 'IN' || $this->operator === '!IN') {
             $value = [];
             foreach ($this->getValue() as $k => $v) {

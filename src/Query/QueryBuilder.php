@@ -26,6 +26,7 @@ final class QueryBuilder
     private array $orderBy = [];
 
     private array $joins = [];
+    private array $joinsAlreadyAdded = [];
 
     private ?int $maxResults = null;
 
@@ -142,6 +143,16 @@ final class QueryBuilder
         } else {
             $fromAliases = [$fromAliasOrEntityName];
         }
+
+        /**
+         * @comment IS security , we need to check if the join is already added !!!
+         */
+        $key = md5(sprintf('%s.%s.%s.%s', $type,$fromAliasOrEntityName, $targetEntityName, $property));
+        if (in_array($key, $this->joinsAlreadyAdded)) {
+            return $this;
+        }
+
+        $this->joinsAlreadyAdded[] = $key;
 
         foreach ($fromAliases as $fromAlias) {
             $fromEntityName = $this->getEntityNameFromAlias($fromAlias);

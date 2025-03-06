@@ -98,8 +98,8 @@ final class Fetcher
 
         $currentEntityName = $this->queryBuilder->getPrimaryEntityName();
         $currentAlias = $alias;
-        foreach (explode('.', $expression) as $relation) {
-            $column = ColumnMapper::getRelationColumnByProperty($currentEntityName, $relation);
+        foreach (explode('.', $expression) as $propertyName) {
+            $column = ColumnMapper::getRelationColumnByProperty($currentEntityName, $propertyName);
             $targetEntityName = $column->getTargetEntity();
             $property = $column->getProperty();
             if ($type === 'left') {
@@ -107,11 +107,9 @@ final class Fetcher
             } else {
                 $this->queryBuilder->innerJoin($currentAlias, $targetEntityName, $property);
             }
-
             $currentAliases = $this->queryBuilder->getAliasesFromEntityName($targetEntityName, $property);
             $currentAlias = end($currentAliases);
             $currentEntityName = $targetEntityName;
         }
     }
-
 }

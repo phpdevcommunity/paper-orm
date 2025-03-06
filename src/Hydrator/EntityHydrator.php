@@ -9,6 +9,7 @@ use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
+use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
 use ReflectionClass;
 
 final class EntityHydrator
@@ -30,13 +31,17 @@ final class EntityHydrator
         }
         $object = $objectOrClass;
         if (!is_object($object)) {
-            $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumn($object);
-            $object = $this->cache->get($objectOrClass, $data[$primaryKeyColumn]) ?: new $object();
+            $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($object);
+            $object = $this->cache->get($objectOrClass, $data[$primaryKeyColumn]) ?: $this->createProxyObject($object);
             $this->cache->set($objectOrClass, $data[$primaryKeyColumn], $object);
         }
         $reflection = new ReflectionClass($object);
+        if ($reflection->getParentClass()) {
+            $reflection = $reflection->getParentClass();
+        }
         $columns = array_merge(ColumnMapper::getColumns($object), ColumnMapper::getOneToManyRelations($object));
 
+        $properties = [];
         foreach ($columns as $column) {
 
             if ($column instanceof OneToMany || $column instanceof JoinColumn) {
@@ -44,13 +49,22 @@ final class EntityHydrator
             } else {
                 $name = $column->getName();
             }
+
             if (!array_key_exists($name, $data)) {
                 continue;
+            }
+            $value = $data[$name];
+
+            if (!$column instanceof OneToMany) {
+                $properties[$column->getProperty()] = [
+                    'name' => $name,
+                    'property' => $column->getProperty(),
+                    'type' => get_class($column),
+                ];
             }
 
             $property = $reflection->getProperty($column->getProperty());
             $property->setAccessible(true);
-            $value = $data[$name];
             if ($column instanceof JoinColumn) {
                 if (!is_array($value) && $value !== null) {
                     $value = null;
@@ -76,7 +90,30 @@ final class EntityHydrator
 
             $property->setValue($object, $column->convertToPHP($value));
         }
+
+        if ($object instanceof ProxyInterface) {
+            $object->__setInitialized($properties);
+        }
+
         return $object;
+    }
+
+    private function createProxyObject(string $class)
+    {
+        if (!class_exists($class)) {
+            throw new \InvalidArgumentException("Class $class does not exist.");
+        }
+
+        $sanitizedClass = str_replace('\\', '_', $class);
+        $proxyClass = 'Proxy_' . $sanitizedClass. uniqid();
+
+        eval("
+            class $proxyClass extends \\$class implements \\PhpDevCommunity\\PaperORM\\Proxy\\ProxyInterface {
+                use \\PhpDevCommunity\\PaperORM\\Proxy\\ProxyInitializedTrait;
+            }
+        ");
+
+        return new $proxyClass();
     }
 
 }

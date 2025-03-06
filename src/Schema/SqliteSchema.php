@@ -68,7 +68,7 @@ class SqliteSchema implements SchemaInterface
 
     public function dropColumn(string $tableName, string $columnName): string
     {
-        if (SQLite3::version() < '3.35.0') {
+        if (\SQLite3::version()['versionString'] < '3.35.0') {
             throw new \LogicException(sprintf("The method '%s' is not supported with SQLite versions older than 3.35.0.", __METHOD__));
         }
         return sprintf('ALTER TABLE %s DROP COLUMN %s', $tableName, $columnName);
