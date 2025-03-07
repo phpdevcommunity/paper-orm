@@ -2,6 +2,7 @@
 
 namespace PhpDevCommunity\PaperORM\Hydrator;
 
+use InvalidArgumentException;
 use LogicException;
 use PhpDevCommunity\PaperORM\Cache\EntityMemcachedCache;
 use PhpDevCommunity\PaperORM\Collection\ObjectStorage;
@@ -56,11 +57,7 @@ final class EntityHydrator
             $value = $data[$name];
 
             if (!$column instanceof OneToMany) {
-                $properties[$column->getProperty()] = [
-                    'name' => $name,
-                    'property' => $column->getProperty(),
-                    'type' => get_class($column),
-                ];
+                $properties[$column->getProperty()] = $column;
             }
 
             $property = $reflection->getProperty($column->getProperty());
@@ -101,17 +98,20 @@ final class EntityHydrator
     private function createProxyObject(string $class)
     {
         if (!class_exists($class)) {
-            throw new \InvalidArgumentException("Class $class does not exist.");
+            throw new InvalidArgumentException("Class $class does not exist.");
         }
 
-        $sanitizedClass = str_replace('\\', '_', $class);
-        $proxyClass = 'Proxy_' . $sanitizedClass. uniqid();
 
-        eval("
+        $sanitizedClass = str_replace('\\', '_', $class);
+        $proxyClass = 'Proxy_' . $sanitizedClass;
+
+        if (!class_exists($proxyClass)) {
+            eval("
             class $proxyClass extends \\$class implements \\PhpDevCommunity\\PaperORM\\Proxy\\ProxyInterface {
                 use \\PhpDevCommunity\\PaperORM\\Proxy\\ProxyInitializedTrait;
             }
         ");
+        }
 
         return new $proxyClass();
     }

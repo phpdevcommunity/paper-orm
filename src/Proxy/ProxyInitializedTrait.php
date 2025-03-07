@@ -4,13 +4,16 @@ namespace PhpDevCommunity\PaperORM\Proxy;
 
 use DateTimeInterface;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
-use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
+use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 
 trait ProxyInitializedTrait
 {
+    /**
+     * @var array<string,Column>
+     */
     private array $__propertiesInitialized = [];
     private array $__valuesInitialized = [];
     private bool $__initialized = false;
@@ -32,7 +35,7 @@ trait ProxyInitializedTrait
         if (!$this->__initialized) {
             return false;
         }
-        return !empty(array_diff_assoc($this->getValues(), $this->__valuesInitialized));
+        return json_encode($this->getValues()) !== json_encode($this->__valuesInitialized);
     }
 
     public function __getPropertiesModified() : array
@@ -60,25 +63,26 @@ trait ProxyInitializedTrait
         return get_parent_class($this);
     }
 
-
     private function getValues(): array
     {
-        $values = (array)$this;
+        $reflectionProxy = new \ReflectionClass($this);
+        $reflection = $reflectionProxy->getParentClass();
         $cleanedData = [];
-        foreach ($values as $key => $value) {
-            $newKey = str_replace(chr(0), '', $key);
-            $newKey = str_replace($this->getParentClass(), '', $newKey);
-            if (array_key_exists($newKey, $this->__propertiesInitialized)) {
-                if ($this->__propertiesInitialized[$newKey]['type'] == DateTimeColumn::class && $value instanceof DateTimeInterface) {
-                    $cleanedData[$newKey] = $value->getTimestamp();
-                } elseif ($this->__propertiesInitialized[$newKey]['type'] == DateColumn::class && $value instanceof DateTimeInterface) {
-                    $cleanedData[$newKey] = $value;
-                } elseif ($this->__propertiesInitialized[$newKey]['type'] == JoinColumn::class && $value instanceof EntityInterface) {
-                    $cleanedData[$newKey] = $value->getPrimaryKeyValue();
-                } else {
-                    $cleanedData[$newKey] = $value;
-                }
+
+        foreach ($this->__propertiesInitialized as $key => $column) {
+            $property = $reflection->getProperty($key);
+            $property->setAccessible(true);
+            $value = $property->getValue($this);
+            if ($column instanceof DateTimeColumn && $value instanceof DateTimeInterface) {
+                $cleanedData[$key] = $value->getTimestamp();
+            } elseif ($column instanceof DateColumn && $value instanceof DateTimeInterface) {
+                $cleanedData[$key] = $value;
+            } elseif ($column instanceof JoinColumn && $value instanceof EntityInterface) {
+                $cleanedData[$key] = $value->getPrimaryKeyValue();
+            } else {
+                $cleanedData[$key] = $value;
             }
+            unset($value);
         }
         return $cleanedData;
     }

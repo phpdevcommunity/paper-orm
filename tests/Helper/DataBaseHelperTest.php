@@ -7,7 +7,7 @@ use PhpDevCommunity\PaperORM\PaperConnection;
 class DataBaseHelperTest
 {
 
-    public static function init(PaperConnection $connection)
+    public static function init(PaperConnection $connection, int $nbUsers = 5)
     {
         $connection->close();
         $connection->connect();
@@ -44,7 +44,7 @@ class DataBaseHelperTest
         )');
 
 
-        for ($i = 0; $i < 5; $i++) {
+        for ($i = 0; $i <$nbUsers; $i++) {
             $user = [
                 'firstname' => 'John' . $i,
                 'lastname' => 'Doe' . $i,
@@ -62,7 +62,8 @@ class DataBaseHelperTest
             )");
         }
 //
-        for ($i = 0; $i < 4; $i++) {
+        $nbPosts = $nbUsers - 1;
+        for ($i = 0; $i < $nbPosts; $i++) {
             $id = uniqid('post_', true);
             $post = [
                 'user_id' => $i + 1,
@@ -91,7 +92,8 @@ class DataBaseHelperTest
             $connection->executeStatement('UPDATE user SET last_post_id = ' . $lastId . ' WHERE id = ' . $post['user_id']);
         }
 
-        for ($i = 0; $i < 8; $i++) {
+        $nbTags = $nbPosts * 2;
+        for ($i = 0; $i < $nbTags; $i++) {
             $id = uniqid('tag_', true);
             $tag = [
                 'post_id' => $i + 1,
@@ -113,7 +115,8 @@ class DataBaseHelperTest
             )");
         }
 
-        for ($i = 0; $i < 7; $i++) {
+        $nbComments = $nbTags - 1;
+        for ($i = 0; $i <$nbComments; $i++) {
             $id = uniqid('comment_', true);
             $comment = [
                 'post_id' => $i + 1,

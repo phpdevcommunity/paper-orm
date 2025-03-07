@@ -22,7 +22,6 @@ class EntityManager
     private array $repositories = [];
 
     private EntityMemcachedCache $cache;
-    private StateHashTrackerManager $stateHashTrackerManager;
 
     public function __construct(array $config = [])
     {
@@ -30,7 +29,6 @@ class EntityManager
         $this->connection = DriverManager::getConnection($driver, $config);
         $this->unitOfWork = new UnitOfWork();
         $this->cache = new EntityMemcachedCache();
-        $this->stateHashTrackerManager = new StateHashTrackerManager();
     }
 
     public function persist(object $entity): void
@@ -114,15 +112,9 @@ class EntityManager
         return $this->cache;
     }
 
-    public function getStateHashTrackerManager(): StateHashTrackerManager
-    {
-        return $this->stateHashTrackerManager;
-    }
-
     public function clear(): void
     {
         $this->getCache()->clear();
-        $this->getStateHashTrackerManager()->clear();
     }
 
 }
