@@ -1,0 +1,37 @@
+{
+  "name": "phpdevcommunity/paperorm",
+  "description": "PaperORM is a lightweight Object-Relational Mapping (ORM) library ",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "F. Michel",
+      "homepage": "https://www.phpdevcommunity.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "PhpDevCommunity\\PaperORM\\": "src",
+      "Test\\PhpDevCommunity\\PaperORM\\": "tests"
+    },
+    "files": [
+      "functions/helpers.php"
+    ]
+  },
+  "require": {
+    "php": ">=7.4",
+    "ext-pdo": "*",
+    "ext-json": "*",
+    "ext-ctype": "*",
+    "phpdevcommunity/relational-query": "^1.0",
+    "phpdevcommunity/php-console": "^1.0"
+  },
+  "require-dev": {
+    "phpdevcommunity/unitester": "^0.1.0@alpha"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": false
+    }
+  }
+}
