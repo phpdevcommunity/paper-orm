@@ -1,8 +1,8 @@
 {
-  "name": "phpdevcommunity/paperorm",
+  "name": "phpdevcommunity/paper-orm",
   "description": "PaperORM is a lightweight Object-Relational Mapping (ORM) library ",
   "type": "library",
-  "license": "MIT",
+  "license": "MPL-2.0",
   "authors": [
     {
       "name": "F. Michel",
