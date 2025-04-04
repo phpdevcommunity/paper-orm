@@ -10,6 +10,10 @@ use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 interface DriverInterface
 {
     public function connect(array $params): PaperPDO;
+
+    public function getDatabaseName(): string;
+
     public function createDatabasePlatform(PaperConnection $connection): PlatformInterface;
+
     public function createDatabaseSchema(): SchemaInterface;
 }

@@ -44,7 +44,7 @@ class DatabaseCreateCommand implements CommandInterface
     {
         $io = ConsoleOutput::create($output);
         $platform = $this->entityManager->createDatabasePlatform();
-        if ($input->getOptionValue('if-not-exists') === true) {
+        if ($input->hasOption('if-not-exists') && $input->getOptionValue('if-not-exists') === true) {
             $platform->createDatabaseIfNotExists();
             $io->info(sprintf('The SQL database "%s" has been successfully created (if it did not already exist).', $platform->getDatabaseName()));
         } else {

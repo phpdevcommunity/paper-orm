@@ -35,7 +35,7 @@ class SqlitePlatform extends AbstractPlatform
 
     public function getDatabaseName(): string
     {
-        return "'main'";
+        return $this->connection->getDriver()->getDatabaseName();
     }
 
     public function listTables(): array
@@ -111,6 +111,15 @@ class SqlitePlatform extends AbstractPlatform
     public function createDatabase(): void
     {
         $database = $this->getDatabaseName();
+        if ($database == ':memory:') {
+            return;
+        }
+
+        $databaseFile = pathinfo($database);
+        if (empty($databaseFile['extension'])) {
+            throw new LogicException(sprintf("The database name '%s' must have an extension.", $database));
+        }
+
         if (file_exists($database)) {
             return;
         }
