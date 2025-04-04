@@ -11,7 +11,6 @@ use PhpDevCommunity\PaperORM\Schema\SqliteSchema;
 
 final class SqliteDriver implements DriverInterface
 {
-    private string $databaseName;
     public function connect(
         #[SensitiveParameter]
         array $params
@@ -21,7 +20,6 @@ final class SqliteDriver implements DriverInterface
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
         ];
 
-        $this->databaseName = $params['path'] ?? '';
         return new PaperPDO(
             $this->constructPdoDsn(array_intersect_key($params, ['path' => true, 'memory' => true])),
             $params['user'] ?? '',
@@ -55,10 +53,5 @@ final class SqliteDriver implements DriverInterface
     public function createDatabaseSchema(): SqliteSchema
     {
         return new SqliteSchema();
-    }
-
-    public function getDatabaseName(): string
-    {
-        return $this->databaseName;
     }
 }

@@ -35,7 +35,7 @@ class SqlitePlatform extends AbstractPlatform
 
     public function getDatabaseName(): string
     {
-        return $this->connection->getDriver()->getDatabaseName();
+        return $this->connection->getParams()['path'] ?? '';
     }
 
     public function listTables(): array
@@ -113,6 +113,10 @@ class SqlitePlatform extends AbstractPlatform
         $database = $this->getDatabaseName();
         if ($database == ':memory:') {
             return;
+        }
+
+        if (empty($database)) {
+            throw new LogicException(sprintf("The database name cannot be empty. %s::createDatabase()", __CLASS__));
         }
 
         $databaseFile = pathinfo($database);
