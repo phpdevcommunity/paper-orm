@@ -15,6 +15,6 @@ final class TextColumn extends Column
         string $defaultValue = null
     )
     {
-        parent::__construct($property, $name, StringType::class, false, $nullable, $defaultValue);
+        parent::__construct($property, $name, StringType::class, $nullable, $defaultValue);
     }
 }

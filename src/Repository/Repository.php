@@ -6,6 +6,7 @@ use LogicException;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\Expression\Expr;
+use PhpDevCommunity\PaperORM\Hydrator\EntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
@@ -62,12 +63,28 @@ abstract class Repository
         return (new Fetcher($this->qb(), true))->where(...$expressions);
     }
 
-    public function insert(object $entity): int
+    public function insert(object $entityToInsert): int
     {
-        $this->checkEntity($entity);
-        if ($entity->getPrimaryKeyValue() !== null) {
-            throw new LogicException(static::class . sprintf(' Cannot insert an entity %s with a primary key ', get_class($entity)));
+        $this->checkEntity($entityToInsert);
+        if ($entityToInsert->getPrimaryKeyValue() !== null) {
+            throw new LogicException(static::class . sprintf(' Cannot insert an entity %s with a primary key ', get_class($entityToInsert)));
         }
+
+        $qb = \PhpDevCommunity\Sql\QueryBuilder::insert($this->getTableName());
+
+        $values = [];
+        foreach ((new SerializerToDb($entityToInsert))->serialize() as $key => $value) {
+            $keyWithoutBackticks = str_replace("`", "", $key);
+            $qb->setValue($key, ":$keyWithoutBackticks");
+            $values[$keyWithoutBackticks] = $value;
+        }
+        $rows = $this->em->getConnection()->executeStatement($qb, $values);
+        $lastInsertId = $this->em->getConnection()->getPdo()->lastInsertId();
+        if ($rows > 0) {
+            $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entityToInsert);
+            (new EntityHydrator($this->em->getCache()))->hydrate($entityToInsert, [$primaryKeyColumn => $lastInsertId]);
+        }
+        return $rows;
     }
 
     public function update(object $entityToUpdate): int

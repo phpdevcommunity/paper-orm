@@ -24,16 +24,16 @@ final class EntityHydrator
 
     public function hydrate($objectOrClass, array $data): object
     {
-        if (!class_exists($objectOrClass)) {
-            throw new LogicException('Class ' . $objectOrClass . ' does not exist');
-        }
         if (!is_subclass_of($objectOrClass, EntityInterface::class)) {
             throw new LogicException('Class ' . $objectOrClass . ' is not an PhpDevCommunity\PaperORM\Entity\EntityInterface');
         }
         $object = $objectOrClass;
-        if (!is_object($object)) {
+        if (is_string($objectOrClass)) {
+            if (!class_exists($objectOrClass)) {
+                throw new LogicException('Class ' . $objectOrClass . ' does not exist');
+            }
             $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($object);
-            $object = $this->cache->get($objectOrClass, $data[$primaryKeyColumn]) ?: $this->createProxyObject($object);
+            $object = $this->cache->get($objectOrClass, $data[$primaryKeyColumn]) ?: $this->createProxyObject($objectOrClass);
             $this->cache->set($objectOrClass, $data[$primaryKeyColumn], $object);
         }
         $reflection = new ReflectionClass($object);

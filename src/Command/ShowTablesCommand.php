@@ -75,11 +75,16 @@ class ShowTablesCommand implements CommandInterface
                 $io->title(sprintf('Table : %s', $table));
                 if ($withColumns === true) {
                     $columns = array_map(function (ColumnMetadata $column) {
-                        return $column->toArray();
+                        $data =  $column->toArray();
+                        foreach ($data as $key => $value) {
+                            $data[$key] = is_array($value) ? json_encode($value) : $value;
+                        }
+                        return $data;
                     }, $platform->listTableColumns($table));
                     $io->table(array_keys($columns[0]), $columns);
                 }
             }
+            $io->writeln('');
         }
     }
 }

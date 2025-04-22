@@ -38,9 +38,27 @@ class PersistAndFlushTest extends TestCase
 
     protected function execute(): void
     {
+        $this->testInsert();
         $this->testUpdate();
         $this->testUpdateJoinColumn();
         $this->testDelete();
+    }
+
+
+
+    private function testInsert(): void
+    {
+        $user = new UserTest();
+        $this->assertNull($user->getId());
+        $user->setFirstname('John');
+        $user->setLastname('Doe');
+        $user->setPassword('secret');
+        $user->setEmail('Xq5qI@example.com');
+        $user->setActive(true);
+        $this->em->persist($user);
+        $this->em->flush();
+        $this->assertNotNull($user->getId());
+        $this->em->clear();
     }
 
     private function testUpdate(): void

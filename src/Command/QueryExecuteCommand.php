@@ -19,7 +19,7 @@ class QueryExecuteCommand implements CommandInterface
 
     public function getName(): string
     {
-       return 'paper:query:execute';
+        return 'paper:query:execute';
     }
 
     public function getDescription(): string
@@ -42,17 +42,21 @@ class QueryExecuteCommand implements CommandInterface
     public function execute(InputInterface $input, OutputInterface $output): void
     {
         $io = ConsoleOutput::create($output);
-        $query = $input->getOptionValue("query");
+        $query = $input->hasArgument("query") ? $input->getArgumentValue("query") : null;
         if ($query === null) {
             throw new \LogicException("SQL query is required");
         }
+        $io->title('Starting query on ' . $this->entityManager->createDatabasePlatform()->getDatabaseName());
+
         $data = $this->entityManager->getConnection()->fetchAll($query);
+        $io->listKeyValues([
+            'query' => $query,
+            'rows' => count($data),
+        ]);
         if ($data === []) {
             $io->info('The query yielded an empty result set.');
             return;
         }
-
-        $io->title('Database : ' . $this->entityManager->createDatabasePlatform()->getDatabaseName());
         $io->table(array_keys($data[0]), $data);
     }
 }

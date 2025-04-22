@@ -2,6 +2,7 @@
 
 namespace PhpDevCommunity\PaperORM\Platform;
 
+use http\Exception\RuntimeException;
 use LogicException;
 use PhpDevCommunity\PaperORM\Mapping\Column\BoolColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
@@ -116,16 +117,16 @@ class SqlitePlatform extends AbstractPlatform
         }
 
         if (empty($database)) {
-            throw new LogicException(sprintf("The database name cannot be empty. %s::createDatabase()", __CLASS__));
+            throw new RuntimeException(sprintf("The database name cannot be empty. %s::createDatabase()", __CLASS__));
         }
 
         $databaseFile = pathinfo($database);
         if (empty($databaseFile['extension'])) {
-            throw new LogicException(sprintf("The database name '%s' must have an extension.", $database));
+            throw new RuntimeException(sprintf("The database name '%s' must have an extension.", $database));
         }
 
         if (file_exists($database)) {
-            return;
+            throw new LogicException(sprintf("The database '%s' already exists.", $database));
         }
 
         touch($database);
@@ -133,7 +134,11 @@ class SqlitePlatform extends AbstractPlatform
 
     public function createDatabaseIfNotExists(): void
     {
-        $this->createDatabase();
+        try {
+            $this->createDatabase();
+        } catch (LogicException $e) {
+            return;
+        }
     }
 
     public function dropDatabase(): void

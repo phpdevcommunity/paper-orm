@@ -176,8 +176,7 @@ SQL;
             foreach (explode(';' . PHP_EOL, self::contentDown($migration)) as $query) {
                 $this->getConnection()->executeStatement(rtrim($query, ';') . ';');
             }
-
-            $rows = $this->getConnection()->executeStatement('DELETE FROM ' . $this->tableName . ' WHERE version = :version', ['version' => $version]);
+            $this->getConnection()->executeStatement('DELETE FROM ' . $this->tableName . ' WHERE version = :version', ['version' => $version]);
 
             $pdo->commit();
 
@@ -223,5 +222,10 @@ SQL;
     public function getSuccessList(): array
     {
         return $this->successList;
+    }
+
+    public function getEntityManager(): EntityManager
+    {
+        return $this->em;
     }
 }
