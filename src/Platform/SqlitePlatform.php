@@ -130,6 +130,7 @@ class SqlitePlatform extends AbstractPlatform
         }
 
         touch($database);
+        chmod($database, 0666);
     }
 
     public function createDatabaseIfNotExists(): void
