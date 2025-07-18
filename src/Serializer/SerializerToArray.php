@@ -42,7 +42,7 @@ final class SerializerToArray
             $property->setAccessible(true);
             $value = $property->getValue($entity);
             $propertyName = $column->getProperty();
-            if (is_iterable($value)) {
+            if (is_iterable($value) && !is_array($value)) {
                 $data[$propertyName] = iterator_to_array($value);
                 continue;
             }

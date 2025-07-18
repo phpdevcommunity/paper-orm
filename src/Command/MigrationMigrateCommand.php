@@ -60,7 +60,7 @@ class MigrationMigrateCommand implements CommandInterface
             $io->success('Migration successfully executed: version ' . $version);
         }
 
-        if (empty($successList)) {
+        if (empty($successList) && $error === null) {
             $io->info('No migrations to run. The database is already up to date.');
         }
 

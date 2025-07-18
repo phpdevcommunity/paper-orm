@@ -110,13 +110,17 @@ class ColumnMetadata
             $arguments[] = $column->getSecondArgument();
         }
 
+        $defaultValue = $column->getDefaultValue();
+        if (is_array($defaultValue)) {
+            $defaultValue = json_encode($defaultValue);
+        }
         return new self(
             $column->getName(),
             $sqlType,
             $column instanceof PrimaryKeyColumn,
             $foreignKeyMetadata,
             $column->isNullable(),
-            $column->getDefaultValue(),
+            $defaultValue,
             null,
             $arguments
         );
