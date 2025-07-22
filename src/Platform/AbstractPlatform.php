@@ -110,7 +110,7 @@ abstract class AbstractPlatform implements PlatformInterface
 
         $indexesExisting = [];
         foreach ($indexes as $index) {
-            $indexMetadata = new IndexMetadata($tableName, $index->getName() ?: $this->generateIndexName($index->getColumns()), $index->getColumns(), $index->isUnique());
+            $indexMetadata = new IndexMetadata($tableName, $index->getName() ?: $this->generateIndexName($tableName, $index->getColumns()), $index->getColumns(), $index->isUnique());
             $indexFound = $indexesFromTable->findOneBy('getName', $indexMetadata->getName());
             if ($indexFound) {
                 if ($indexMetadata->toArray() != $indexFound->toArray()) {
@@ -131,12 +131,11 @@ abstract class AbstractPlatform implements PlatformInterface
         return [$indexesToAdd, $indexesToUpdate, $indexesToDrop, $indexesFromTable->toArray()];
     }
 
-    final protected function generateIndexName(array $columnNames): string
+    final protected function generateIndexName(string $tableName, array $columnNames): string
     {
-        $hash = implode("", array_map(static function ($column) {
+        $hash = implode('', array_map(static function ($column) {
             return dechex(crc32($column));
-        }, $columnNames));
-
+        }, array_merge([$tableName], $columnNames)));
 
         return strtoupper(substr($this->getPrefixIndexName() . $hash, 0, $this->getMaxLength()));
     }

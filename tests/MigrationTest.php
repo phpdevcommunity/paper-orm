@@ -54,14 +54,14 @@ class MigrationTest extends TestCase
 
         $this->assertStringContains(file_get_contents($migrationFile), '-- UP MIGRATION --');
         $this->assertStringContains(file_get_contents($migrationFile), 'CREATE TABLE user (id INTEGER PRIMARY KEY NOT NULL,firstname VARCHAR(255) NOT NULL,lastname VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,password VARCHAR(255) NOT NULL,is_active BOOLEAN NOT NULL,created_at DATETIME NOT NULL,last_post_id INTEGER NOT NULL,FOREIGN KEY (last_post_id) REFERENCES post (id));');
-        $this->assertStringContains(file_get_contents($migrationFile), 'CREATE INDEX IX_2D053F64 ON user (last_post_id);');
+        $this->assertStringContains(file_get_contents($migrationFile), 'CREATE INDEX IX_8D93D6492D053F64 ON user (last_post_id);');
         $this->assertStringContains(file_get_contents($migrationFile), 'CREATE TABLE post (id INTEGER PRIMARY KEY NOT NULL,title VARCHAR(255) NOT NULL,content VARCHAR(255) NOT NULL,created_at DATETIME NOT NULL,user_id INTEGER NOT NULL,FOREIGN KEY (user_id) REFERENCES user (id));');
-        $this->assertStringContains(file_get_contents($migrationFile), 'CREATE INDEX IX_A76ED395 ON post (user_id);');
+        $this->assertStringContains(file_get_contents($migrationFile), 'CREATE INDEX IX_5A8A6C8DA76ED395 ON post (user_id);');
 
         $this->assertStringContains(file_get_contents($migrationFile), '-- DOWN MIGRATION --');
-        $this->assertStringContains(file_get_contents($migrationFile), 'DROP INDEX IX_2D053F64;');
+        $this->assertStringContains(file_get_contents($migrationFile), 'DROP INDEX IX_8D93D6492D053F64;');
         $this->assertStringContains(file_get_contents($migrationFile), 'DROP TABLE user;');
-        $this->assertStringContains(file_get_contents($migrationFile), 'DROP INDEX IX_A76ED395;');
+        $this->assertStringContains(file_get_contents($migrationFile), 'DROP INDEX IX_5A8A6C8DA76ED395;');
         $this->assertStringContains(file_get_contents($migrationFile), 'DROP TABLE post;');
      }
 
@@ -91,8 +91,8 @@ class MigrationTest extends TestCase
         $this->assertTrue(count($successList) === 1);
         $this->assertEquals(pathinfo($migrationFile, PATHINFO_FILENAME), $successList[0]);
         $this->assertStringContains(file_get_contents( $migrationFile ), 'ALTER TABLE user ADD childs INTEGER NOT NULL DEFAULT 0;');
-        $this->assertStringContains(file_get_contents( $migrationFile ), 'CREATE UNIQUE INDEX IX_E7927C74 ON user (email);');
-        $this->assertStringContains(file_get_contents( $migrationFile ), 'DROP INDEX IX_E7927C74;');
+        $this->assertStringContains(file_get_contents( $migrationFile ), 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON user (email);');
+        $this->assertStringContains(file_get_contents( $migrationFile ), 'DROP INDEX IX_8D93D649E7927C74;');
     }
 
     private function testFailedMigration(): void

@@ -64,7 +64,6 @@ final class PaperMigration
         $migrationContent = <<<'SQL'
 -- UP MIGRATION --
 %s
-
 -- DOWN MIGRATION --
 %s
 SQL;
@@ -171,9 +170,11 @@ SQL;
     {
         $migration = $this->directory->getMigration($version);
         $pdo = $this->getConnection()->getPdo();
+        $currentQuery = '';
         try {
             $pdo->beginTransaction();
             foreach (explode(';' . PHP_EOL, self::contentDown($migration)) as $query) {
+                $currentQuery = $query;
                 $this->getConnection()->executeStatement(rtrim($query, ';') . ';');
             }
             $this->getConnection()->executeStatement('DELETE FROM ' . $this->tableName . ' WHERE version = :version', ['version' => $version]);
@@ -182,7 +183,7 @@ SQL;
 
         } catch (PDOException $e) {
             $pdo->rollBack();
-            throw new RuntimeException("Failed to execute DOWN migration: " . $e->getMessage());
+            throw new RuntimeException(sprintf('Failed to migrate version %s : %s -> %s', $version, $e->getMessage(), $currentQuery));
         }
 
     }
