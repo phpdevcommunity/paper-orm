@@ -9,23 +9,32 @@ use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Entity;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
 use Test\PhpDevCommunity\PaperORM\Repository\PostTestRepository;
 
+#[Entity(table : 'post', repository : PostTestRepository::class)]
 class PostTest implements EntityInterface
 {
 
+    #[PrimaryKeyColumn]
     private ?int $id = null;
 
+    #[StringColumn]
     private ?string $title = null;
 
+    #[StringColumn]
     private ?string $content = null;
 
+    #[DateTimeColumn(name: 'created_at')]
     private ?DateTime $createdAt = null;
 
+    #[JoinColumn(name: 'user_id', referencedColumnName: 'id', targetEntity:  UserTest::class)]
     private ?UserTest $user = null;
 
+    #[OneToMany(targetEntity: TagTest::class, mappedBy: 'post')]
     private ObjectStorage $tags;
+    #[OneToMany(targetEntity: CommentTest::class, mappedBy: 'post')]
     private ObjectStorage $comments;
 
     public function __construct()
@@ -46,14 +55,17 @@ class PostTest implements EntityInterface
 
     static public function columnsMapping(): array
     {
+        if (PHP_VERSION_ID > 80000) {
+            return [];
+        }
         return [
-            new PrimaryKeyColumn('id'),
-            new StringColumn('title'),
-            new StringColumn('content'),
-            new DateTimeColumn('createdAt', 'created_at'),
-            new JoinColumn('user', 'user_id', 'id', UserTest::class),
-            new OneToMany('tags', TagTest::class, 'post'),
-            new OneToMany('comments', CommentTest::class, 'post'),
+            (new PrimaryKeyColumn())->bindProperty('id'),
+            (new StringColumn())->bindProperty('title'),
+            (new StringColumn())->bindProperty('content'),
+            (new DateTimeColumn( 'created_at'))->bindProperty('createdAt'),
+            (new JoinColumn('user_id', 'id', UserTest::class))->bindProperty('user'),
+            (new OneToMany( TagTest::class, 'post'))->bindProperty('tags'),
+            (new OneToMany( CommentTest::class, 'post'))->bindProperty('comments'),
         ];
     }
 

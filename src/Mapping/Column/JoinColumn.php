@@ -5,7 +5,7 @@ namespace PhpDevCommunity\PaperORM\Mapping\Column;
 use PhpDevCommunity\PaperORM\Types\IntegerType;
 use ReflectionClass;
 
-#[\Attribute(\Attribute::TARGET_CLASS|\Attribute::IS_REPEATABLE)]
+#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::IS_REPEATABLE)]
 final class JoinColumn extends Column
 {
     /**
@@ -18,7 +18,6 @@ final class JoinColumn extends Column
     private string $targetEntity;
 
     final public function __construct(
-        string  $property,
         string  $name,
         string  $referencedColumnName,
         string  $targetEntity,
@@ -26,7 +25,7 @@ final class JoinColumn extends Column
         bool   $unique = false
     )
     {
-        parent::__construct($property, $name, IntegerType::class, $nullable, null, $unique);
+        parent::__construct('', $name, IntegerType::class, $nullable, null, $unique);
         $this->referencedColumnName = $referencedColumnName;
         $this->targetEntity = $targetEntity;
     }

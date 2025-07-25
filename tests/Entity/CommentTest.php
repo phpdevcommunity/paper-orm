@@ -3,12 +3,15 @@
 namespace Test\PhpDevCommunity\PaperORM\Entity;
 
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\Entity\TableMetadataInterface;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Entity;
 use Test\PhpDevCommunity\PaperORM\Repository\TagTestRepository;
 
-class CommentTest implements EntityInterface
+#[Entity(table : 'comment', repository : null)]
+class CommentTest implements EntityInterface, TableMetadataInterface
 {
 
     private ?int $id = null;
@@ -28,9 +31,9 @@ class CommentTest implements EntityInterface
     static public function columnsMapping(): array
     {
         return [
-            new PrimaryKeyColumn('id'),
-            new StringColumn('body'),
-            new JoinColumn('post', 'post_id', 'id', PostTest::class),
+            (new PrimaryKeyColumn())->bindProperty('id'),
+            (new StringColumn())->bindProperty('body'),
+            (new JoinColumn('post_id', 'id', PostTest::class))->bindProperty('post'),
         ];
     }
 

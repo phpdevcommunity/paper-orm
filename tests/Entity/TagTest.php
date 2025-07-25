@@ -7,14 +7,19 @@ use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Entity;
 use Test\PhpDevCommunity\PaperORM\Repository\PostTestRepository;
 use Test\PhpDevCommunity\PaperORM\Repository\TagTestRepository;
 
+#[Entity(table : 'tag', repository : TagTestRepository::class)]
 class TagTest implements EntityInterface
 {
-
+    #[PrimaryKeyColumn]
     private ?int $id = null;
+    #[StringColumn]
     private ?string $name = null;
+
+    #[JoinColumn(name : 'post_id', referencedColumnName : 'id', targetEntity : PostTest::class)]
     private ?PostTest $post = null;
 
     static public function getTableName(): string
@@ -29,10 +34,13 @@ class TagTest implements EntityInterface
 
     static public function columnsMapping(): array
     {
+        if (PHP_VERSION_ID > 80000) {
+            return [];
+        }
         return [
-            new PrimaryKeyColumn('id'),
-            new StringColumn('name'),
-            new JoinColumn('post', 'post_id', 'id', PostTest::class),
+            (new PrimaryKeyColumn())->bindProperty('id'),
+            (new StringColumn())->bindProperty('name'),
+            (new JoinColumn( 'post_id', 'id', PostTest::class))->bindProperty('post'),
         ];
     }
 

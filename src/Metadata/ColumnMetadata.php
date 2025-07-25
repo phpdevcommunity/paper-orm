@@ -3,6 +3,7 @@
 namespace PhpDevCommunity\PaperORM\Metadata;
 
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
@@ -96,7 +97,7 @@ class ColumnMetadata
             $targetEntity = $column->getTargetEntity();
             if (is_subclass_of($targetEntity, EntityInterface::class)) {
                 $foreignKeyMetadata = [
-                    'referencedTable' => $targetEntity::getTableName(),
+                    'referencedTable' => EntityMapper::getTable($targetEntity),
                     'referencedColumn' => $column->getReferencedColumnName(),
                 ];
             }

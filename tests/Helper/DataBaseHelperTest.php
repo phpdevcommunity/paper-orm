@@ -24,35 +24,35 @@ class DataBaseHelperTest
         $platform = $entityManager->createDatabasePlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
-            new JoinColumn('post', 'last_post_id', 'id', PostTest::class, true),
+            (new JoinColumn( 'last_post_id', 'id', PostTest::class, true)),
             new StringColumn('firstname'),
             new StringColumn('lastname'),
             new StringColumn('email'),
             new StringColumn('password'),
             new BoolColumn('is_active'),
-            new DateTimeColumn('created_at', 'created_at', true),
+            new DateTimeColumn('created_at', true),
         ]);
 
         $platform->createTable('post', [
             new PrimaryKeyColumn('id'),
-            new JoinColumn('user', 'user_id', 'id', UserTest::class, false),
+            ( new JoinColumn( 'user_id', 'id', UserTest::class, false)),
             new StringColumn('title'),
             new StringColumn('content'),
-            new DateTimeColumn('created_at', 'created_at', true),
+            new DateTimeColumn('created_at', true),
         ]);
 
         $platform->createIndex(new IndexMetadata('post', 'idx_post_user_id', ['user_id']));
 
         $platform->createTable('tag', [
             new PrimaryKeyColumn('id'),
-            new JoinColumn('post', 'post_id', 'id', PostTest::class),
+            (new JoinColumn('post_id', 'id', PostTest::class)),
             new StringColumn('name'),
         ]);
 
 
         $platform->createTable('comment', [
             new PrimaryKeyColumn('id'),
-            new JoinColumn('post', 'post_id', 'id', PostTest::class),
+            (new JoinColumn('post_id', 'id', PostTest::class)),
             new StringColumn('body'),
         ]);
 

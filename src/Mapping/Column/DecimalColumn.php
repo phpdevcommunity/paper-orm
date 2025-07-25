@@ -5,12 +5,11 @@ namespace PhpDevCommunity\PaperORM\Mapping\Column;
 use Attribute;
 use PhpDevCommunity\PaperORM\Types\DecimalType;
 
-#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
+#[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::IS_REPEATABLE)]
 final class DecimalColumn extends Column
 {
 
     public function __construct(
-        string $property,
         string $name = null,
         bool   $nullable = false,
         string $defaultValue = null,
@@ -19,7 +18,7 @@ final class DecimalColumn extends Column
         bool   $unique = false
     )
     {
-        parent::__construct($property, $name, DecimalType::class, $nullable, $defaultValue, $unique, $precision, $scale);
+        parent::__construct('', $name, DecimalType::class, $nullable, $defaultValue, $unique, $precision, $scale);
     }
 
     public function getPrecision(): ?int

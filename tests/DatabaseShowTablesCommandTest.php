@@ -49,7 +49,7 @@ class DatabaseShowTablesCommandTest extends TestCase
 
         $platform->createTable('post', [
             new PrimaryKeyColumn('id'),
-            new JoinColumn('user', 'user_id', 'id', UserTest::class),
+            new JoinColumn('user_id', 'id', UserTest::class),
             new StringColumn('title'),
             new StringColumn('content'),
         ]);

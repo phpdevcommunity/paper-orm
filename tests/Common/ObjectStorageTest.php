@@ -180,10 +180,10 @@ class ObjectStorageTest extends TestCase
         $user->setFirstname('John');
         $objectStorage = new ObjectStorage();
         $objectStorage->attach($user);
-        $foundObject = $objectStorage->findOneBy('getFirstname', 'John');
+        $foundObject = $objectStorage->findOneByMethod('getFirstname', 'John');
         $this->assertStrictEquals($user, $foundObject);
 
-        $foundObject = $objectStorage->findOneBy('getNonExistentMethod', 'John');
+        $foundObject = $objectStorage->findOneByMethod('getNonExistentMethod', 'John');
         $this->assertNull($foundObject);
     }
 

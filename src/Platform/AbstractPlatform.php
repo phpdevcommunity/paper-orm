@@ -111,7 +111,7 @@ abstract class AbstractPlatform implements PlatformInterface
         $indexesExisting = [];
         foreach ($indexes as $index) {
             $indexMetadata = new IndexMetadata($tableName, $index->getName() ?: $this->generateIndexName($tableName, $index->getColumns()), $index->getColumns(), $index->isUnique());
-            $indexFound = $indexesFromTable->findOneBy('getName', $indexMetadata->getName());
+            $indexFound = $indexesFromTable->findOneByMethod('getName', $indexMetadata->getName());
             if ($indexFound) {
                 if ($indexMetadata->toArray() != $indexFound->toArray()) {
                     $indexesToUpdate[] = $indexMetadata;

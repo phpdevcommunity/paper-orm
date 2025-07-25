@@ -8,6 +8,7 @@ use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\Generator\SchemaDiffGenerator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
+use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\PaperConnection;
@@ -112,7 +113,7 @@ SQL;
         $tables = [];
         foreach ($entities as $entity) {
             if (is_subclass_of($entity, EntityInterface::class)) {
-                $tableName = $entity::getTableName();
+                $tableName = EntityMapper::getTable($entity);
                 $tables[$tableName] = [
                     'columns' => ColumnMapper::getColumns($entity),
                     'indexes' => [] // TODO IndexMapper::getIndexes($entity)
@@ -191,8 +192,8 @@ SQL;
     private function createVersion(): void
     {
         $this->platform->createTableIfNotExists($this->tableName, [
-            new StringColumn('version', 'version', 50),
-            new DateTimeColumn('created_at', 'created_at')
+            (new StringColumn( null, 50))->bindProperty('version'),
+            (new DateTimeColumn(null, 'created_at'))->bindProperty('created_at'),
         ]);
     }
 

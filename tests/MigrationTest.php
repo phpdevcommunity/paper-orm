@@ -78,8 +78,8 @@ class MigrationTest extends TestCase
     private function testColumnModification(): void
     {
         $userColumns = ColumnMapper::getColumns(UserTest::class);
-        $userColumns[3] = new StringColumn('email', 'email', 255, true, null, true);
-        $userColumns[] = new IntColumn('childs', 'childs', false, 0);
+        $userColumns[3] = (new StringColumn( null, 255, true, null, true))->bindProperty('email');
+        $userColumns[] = (new IntColumn( null, false, 0))->bindProperty('childs');
         $migrationFile = $this->paperMigration->diff([
             'user' => [
                 'columns' => $userColumns,
@@ -98,7 +98,7 @@ class MigrationTest extends TestCase
     private function testFailedMigration(): void
     {
         $userColumns = ColumnMapper::getColumns(UserTest::class);
-        $userColumns[3] = new StringColumn('email', 'email', 100, true, null, true);
+        $userColumns[3] = (new StringColumn( null, 100, true, null, true))->bindProperty('email');
         $this->paperMigration->diff([
             'user' => [
                 'columns' => $userColumns,

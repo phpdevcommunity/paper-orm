@@ -30,6 +30,10 @@ abstract class Column
          ?string $secondArgument = null
      )
     {
+
+        if (empty($property) && !empty($name)) {
+            $property = $name;
+        }
         $this->property = $property;
         $this->name = $name;
         $this->type = $type;
@@ -38,10 +42,6 @@ abstract class Column
         $this->nullable = $nullable;
         $this->firstArgument = $firstArgument;
         $this->secondArgument = $secondArgument;
-
-        if ($this instanceof JoinColumn || $unique === true) {
-            $this->index = new Index([$this->getName()], $unique);
-        }
     }
 
     final public function __toString(): string
@@ -49,14 +49,24 @@ abstract class Column
         return $this->getProperty();
     }
 
+    public function bindProperty(string $propertyName): self
+    {
+        $this->property = $propertyName;
+        return $this;
+    }
+
     public function getProperty(): string
     {
+        if (empty($this->property)) {
+            throw  new \LogicException('Property must be set, use bindProperty');
+        }
         return $this->property;
     }
 
     final public function getName(): ?string
     {
-        return $this->name ?: $this->getProperty();
+        $property = $this->getProperty();
+        return $this->name ?: $property;
     }
 
 
@@ -103,6 +113,9 @@ abstract class Column
 
     public function getIndex(): ?Index
     {
+        if ($this->index === null && ($this instanceof JoinColumn || $this->isUnique())) {
+            $this->index = new Index([$this->getName()], $this->isUnique());
+        }
         return $this->index;
     }
 

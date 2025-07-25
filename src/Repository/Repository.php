@@ -58,9 +58,9 @@ abstract class Repository
         return (new Fetcher($this->qb(), true))->where(...$expressions);
     }
 
-    public function where(Expr ...$expressions): Fetcher
+    public function findOneBy(array $arguments = []): Fetcher
     {
-        return (new Fetcher($this->qb(), true))->where(...$expressions);
+        return $this->findBy($arguments)->first();
     }
 
     public function insert(object $entityToInsert): int

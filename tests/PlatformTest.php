@@ -108,7 +108,7 @@ class PlatformTest extends TestCase
         ]);
 
         $this->assertStrictEquals(6, count($platform->listTableColumns('user')));
-        $platform->dropColumn('user', 'lastname');
+        $platform->dropColumn('user', new StringColumn('lastname'));
         $this->assertStrictEquals(5, count($platform->listTableColumns('user')));
     }
 

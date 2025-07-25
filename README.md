@@ -48,7 +48,11 @@ $entityManager = new EntityManager([
 
 ## Basic Usage
 
+> **Note**: The `repository` attribute/method is optional. If none is defined, a dummy repository will be automatically generated.
+
 ### Defining an Entity
+
+#### PHP 7.4 < 8
 
 ```php
 use PaperORM\Entity\EntityInterface;
@@ -70,13 +74,38 @@ class User implements EntityInterface
     public static function columnsMapping(): array
     {
         return [
-            new PrimaryKeyColumn('id'),
-            new StringColumn('name'),
-            new StringColumn('email'),
-            new BoolColumn('isActive'),
-            new DateTimeColumn('createdAt')
+            (new PrimaryKeyColumn())->bindProperty('id'),
+            (new StringColumn())->bindProperty('name'),
+            (new StringColumn())->bindProperty('email'),
+            (new BoolColumn('is_active'))->bindProperty('isActive'), // 'is_active' is the column name
+            (new DateTimeColumn('created_at'))->bindProperty('createdAt') // 'created_at' is the column name
         ];
     }
+    
+    // Getters/Setters...
+}
+```
+
+#### PHP 8+ with attributes
+
+```php
+use PaperORM\Entity\EntityInterface;
+use PaperORM\Mapping\{PrimaryKeyColumn, StringColumn, BoolColumn, DateTimeColumn, OneToMany, JoinColumn};
+
+#[Entity(table : 'user', repository : null)]
+class User implements EntityInterface
+{
+    #[PrimaryKeyColumn]
+    private ?int $id = null;
+    #[StringColumn]
+    private string $name;
+    #[StringColumn]
+    private string $email;
+    #[BoolColumn(name: 'is_active')]
+    private bool $isActive = true;
+    #[DateTimeColumn(name: 'created_at')]
+    private \DateTime $createdAt;
+   
     
     // Getters/Setters...
 }
@@ -121,6 +150,14 @@ $entityManager->flush();
 // OneToMany relationship
 class Article 
 {
+    // IF PHP >= 8
+    #[\PhpDevCommunity\PaperORM\Mapping\OneToMany(Comment::class, 'article')] 
+    private \PhpDevCommunity\PaperORM\Collection\ObjectStorage $comments;
+    
+    public function __construct() {
+        $this->comments = new ObjectStorage();
+    }
+    
     // ...
     public static function columnsMapping(): array
     {
@@ -149,7 +186,7 @@ $userObject = $repository->find(1)->toObject();
 // Object collection
 $activeUsers = $repository->findBy()
     ->where('isActive', true)
-    ->toCollection();
+    ->toObject();
 ```
 
 > PaperORM offers a simple API while covering the essential needs of a modern ORM.
@@ -225,7 +262,11 @@ $entityManager = new EntityManager([
 
 ## Utilisation de base
 
+> **Note**: L’attribut ou la méthode `repository` est facultatif. Si aucun n’est défini, un repository fictif sera généré automatiquement.
+
 ### Définition d'une entité
+
+#### PHP 7.4 < 8
 
 ```php
 use PaperORM\Entity\EntityInterface;
@@ -254,6 +295,31 @@ class User implements EntityInterface
             new DateTimeColumn('createdAt')
         ];
     }
+    
+    // Getters/Setters...
+}
+```
+
+#### PHP 8+ avec attributs
+
+```php
+use PaperORM\Entity\EntityInterface;
+use PaperORM\Mapping\{PrimaryKeyColumn, StringColumn, BoolColumn, DateTimeColumn, OneToMany, JoinColumn};
+
+#[Entity(table : 'user', repository : null)]
+class User implements EntityInterface
+{
+    #[PrimaryKeyColumn]
+    private ?int $id = null;
+    #[StringColumn]
+    private string $name;
+    #[StringColumn]
+    private string $email;
+    #[BoolColumn(name: 'is_active')]
+    private bool $isActive = true;
+    #[DateTimeColumn(name: 'created_at')]
+    private \DateTime $createdAt;
+   
     
     // Getters/Setters...
 }
@@ -298,6 +364,14 @@ $entityManager->flush();
 // Relation OneToMany
 class Article 
 {
+    // IF PHP >= 8
+    #[\PhpDevCommunity\PaperORM\Mapping\OneToMany(Comment::class, 'article')] 
+    private \PhpDevCommunity\PaperORM\Collection\ObjectStorage $comments;
+    
+    public function __construct() {
+        $this->comments = new ObjectStorage();
+    }
+    
     // ...
     public static function columnsMapping(): array
     {

@@ -44,7 +44,7 @@ class ObjectStorage extends SplObjectStorage
      * @param mixed $value The value to search for
      * @return object|null The found object or null if not found
      */
-    public function findOneBy(string $method, $value): ?object
+    public function findOneByMethod(string $method, $value): ?object
     {
         foreach ($this as $object) {
             if (method_exists($object, $method) && $object->$method() === $value) {

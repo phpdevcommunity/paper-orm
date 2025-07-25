@@ -6,12 +6,12 @@ namespace PhpDevCommunity\PaperORM\Mapping;
 final class Entity
 {
     private string $table;
-    private string $repositoryClass;
+    private ?string $repositoryClass = null;
 
-    public function __construct( string $table, string $repositoryClass)
+    public function __construct( string $table, ?string $repository = null)
     {
         $this->table = $table;
-        $this->repositoryClass = $repositoryClass;
+        $this->repositoryClass = $repository;
     }
 
     public function getTable(): string
@@ -19,7 +19,7 @@ final class Entity
         return $this->table;
     }
 
-    public function getRepositoryClass(): string
+    public function getRepositoryClass(): ?string
     {
         return $this->repositoryClass;
     }

@@ -37,7 +37,7 @@ class PlatformDiffTest extends TestCase
             new StringColumn('lastname'),
             new StringColumn('email'),
             new StringColumn('password'),
-            new BoolColumn('active', 'is_active'),
+            (new BoolColumn('is_active'))->bindProperty('active'),
         ];
         $platform->createTable('user', $columns);
 
@@ -46,8 +46,7 @@ class PlatformDiffTest extends TestCase
         $this->assertEmpty($diff->getColumnsToAdd());
         $this->assertEmpty($diff->getColumnsToUpdate());
         $this->assertEmpty($diff->getColumnsToDelete());
-//
-//
+
         $columns[3] = new StringColumn('username');
 
         $diff = $platform->diff('user', $columns, [] );
@@ -59,7 +58,7 @@ class PlatformDiffTest extends TestCase
         $platform->dropTable('user');
         $platform->createTable('user', $columns, [] );
 
-        $columns[3] = new StringColumn('username', 'username', 100);
+        $columns[3] = new StringColumn( 'username', 100);
         $diff = $platform->diff('user', $columns, [] );
 
         $this->assertTrue(count($diff->getColumnsToUpdate()) == 1);

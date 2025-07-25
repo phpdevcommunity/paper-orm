@@ -8,6 +8,7 @@ use PhpDevCommunity\PaperORM\Cache\ColumnCache;
 use PhpDevCommunity\PaperORM\Cache\OneToManyCache;
 use PhpDevCommunity\PaperORM\Cache\PrimaryKeyColumnCache;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\Entity\TableMetadataInterface;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
@@ -38,7 +39,6 @@ final class ColumnMapper
             }
 
             $primaryKey = $columnsFiltered[0];
-
             $cache->set($class, $primaryKey);
         }
         return $cache->get($class);
@@ -79,7 +79,7 @@ final class ColumnMapper
         if (empty($cache->get($class))) {
             $columnsMapping = [];
             if (is_subclass_of($class, EntityInterface::class)) {
-                $columnsMapping = $class::columnsMapping();
+                $columnsMapping = self::getColumnsMapping($class);
                 $columnsMapping = array_filter($columnsMapping, function ($column) {
                     return $column instanceof OneToMany;
                 });
@@ -128,7 +128,7 @@ final class ColumnMapper
     static private function loadCache(string $class): void
     {
         if (is_subclass_of($class, EntityInterface::class)) {
-            $columnsMapping = $class::columnsMapping();
+            $columnsMapping = self::getColumnsMapping($class);
             $columnsMapping = array_filter($columnsMapping, function ($column) {
                 return $column instanceof Column;
             });
@@ -138,5 +138,60 @@ final class ColumnMapper
         }
 
         ColumnCache::getInstance()->set($class, $columnsMapping);
+    }
+
+    static private function getColumnsMapping($class): array
+    {
+        if (is_subclass_of($class, TableMetadataInterface::class)) {
+            return $class::columnsMapping();
+        }
+
+        if (PHP_VERSION_ID >= 80000) {
+            $columns   = [];
+            $refClass  = new \ReflectionClass($class);
+            while ($refClass) {
+                foreach ($refClass->getProperties() as $property) {
+                    if ($property->getDeclaringClass()->getName() !== $refClass->getName()) {
+                        continue;
+                    }
+
+                    foreach ($property->getAttributes(
+                        Column::class,
+                        \ReflectionAttribute::IS_INSTANCEOF
+                    ) as $attr) {
+                        $instance = $attr->newInstance();
+                        if (method_exists($instance, 'bindProperty')) {
+                            $instance->bindProperty($property->getName());
+                        }
+                        $columns[] = $instance;
+                    }
+
+                    foreach ($property->getAttributes(
+                        OneToMany::class,
+                        \ReflectionAttribute::IS_INSTANCEOF
+                    ) as $attr) {
+                        $instance = $attr->newInstance();
+                        if (method_exists($instance, 'bindProperty')) {
+                            $instance->bindProperty($property->getName());
+                        }
+                        $columns[] = $instance;
+                    }
+                }
+
+                $refClass = $refClass->getParentClass();
+            }
+
+            return $columns;
+        }
+
+        if (method_exists($class, 'columnsMapping')) {
+            return $class::columnsMapping();
+        }
+
+        throw new \LogicException(sprintf(
+            'Entity %s must define columns via interface, attribute or static method : ::columnsMapping() or implement %s',
+            is_object($class) ? get_class($class) : $class, TableMetadataInterface::class
+        ));
+
     }
 }

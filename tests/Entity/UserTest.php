@@ -9,25 +9,38 @@ use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Entity;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
+use Test\PhpDevCommunity\PaperORM\Repository\PostTestRepository;
 
+#[Entity(table : 'user', repository : null)]
 class UserTest implements EntityInterface
 {
+    #[PrimaryKeyColumn]
     private ?int $id = null;
 
+    #[StringColumn]
     private ?string $firstname = null;
 
+    #[StringColumn]
     private ?string $lastname    = null;
 
+    #[StringColumn]
     private ?string $email = null;
 
+    #[StringColumn]
     private ?string $password = null;
 
+    #[BoolColumn(name: 'is_active')]
     private bool $active = false;
 
+    #[DateTimeColumn(name: 'created_at')]
     private ?\DateTime $createdAt = null;
 
+    #[OneToMany(targetEntity: PostTest::class, mappedBy: 'user')]
     private ObjectStorage $posts;
+
+    #[JoinColumn(name: 'last_post_id', referencedColumnName: 'id', targetEntity: PostTest::class)]
     private ?PostTest $lastPost = null;
     public function __construct()
     {
@@ -47,16 +60,19 @@ class UserTest implements EntityInterface
 
     static public function columnsMapping(): array
     {
+        if (PHP_VERSION_ID > 80000) {
+            return [];
+        }
         return [
-            new PrimaryKeyColumn('id'),
-            new StringColumn('firstname'),
-            new StringColumn('lastname'),
-            new StringColumn('email'),
-            new StringColumn('password'),
-            new BoolColumn('active', 'is_active'),
-            new DateTimeColumn('createdAt', 'created_at'),
-            new OneToMany('posts', PostTest::class,  'user'),
-            new JoinColumn('lastPost', 'last_post_id', 'id', PostTest::class),
+            (new PrimaryKeyColumn())->bindProperty('id'),
+            (new StringColumn())->bindProperty('firstname'),
+            (new StringColumn())->bindProperty('lastname'),
+            (new StringColumn())->bindProperty('email'),
+            (new StringColumn())->bindProperty('password'),
+            (new BoolColumn( 'is_active'))->bindProperty('active'),
+            (new DateTimeColumn( 'created_at'))->bindProperty('createdAt'),
+            (new OneToMany( PostTest::class,  'user'))->bindProperty('posts'),
+            (new JoinColumn( 'last_post_id', 'id', PostTest::class))->bindProperty('lastPost'),
         ];
     }
 
