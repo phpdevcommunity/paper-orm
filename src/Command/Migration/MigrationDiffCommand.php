@@ -1,6 +1,6 @@
 <?php
 
-namespace PhpDevCommunity\PaperORM\Command;
+namespace PhpDevCommunity\PaperORM\Command\Migration;
 
 use PhpDevCommunity\Console\Command\CommandInterface;
 use PhpDevCommunity\Console\InputInterface;

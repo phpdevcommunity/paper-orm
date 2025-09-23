@@ -131,17 +131,29 @@ class MigrationTest extends TestCase
         $this->assertEquals(pathinfo($migrationFile, PATHINFO_FILENAME), $successList[0]);
         switch (get_class($driver)) {
             case SqliteDriver::class:
+                $schema = $driver->createDatabaseSchema();
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                $this->assertEquals($lines, array (
-                    0 => '-- UP MIGRATION --',
-                    1 => 'ALTER TABLE user ADD childs INTEGER NOT NULL DEFAULT 0;',
-                    2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON user (email);',
-                    3 => '-- Modify column email is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. Consider creating a new column and migrating the data.;',
-                    4 => '-- DOWN MIGRATION --',
-                    5 => '-- Drop column childs is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. You might need to manually drop the column.;',
-                    6 => 'DROP INDEX IX_8D93D649E7927C74;',
-                ));
-
+                if ($schema->supportsDropColumn()) {
+                    $this->assertEquals($lines, array (
+                        0 => '-- UP MIGRATION --',
+                        1 => 'ALTER TABLE user ADD childs INTEGER NOT NULL DEFAULT 0;',
+                        2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON user (email);',
+                        3 => '-- Modify column email is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. Consider creating a new column and migrating the data.;',
+                        4 => '-- DOWN MIGRATION --',
+                        5 => 'ALTER TABLE user DROP COLUMN childs;',
+                        6 => 'DROP INDEX IX_8D93D649E7927C74;',
+                    ));
+                } else {
+                    $this->assertEquals($lines, array (
+                        0 => '-- UP MIGRATION --',
+                        1 => 'ALTER TABLE user ADD childs INTEGER NOT NULL DEFAULT 0;',
+                        2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON user (email);',
+                        3 => '-- Modify column email is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. Consider creating a new column and migrating the data.;',
+                        4 => '-- DOWN MIGRATION --',
+                        5 => '-- Drop column childs is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. You might need to manually drop the column.;',
+                        6 => 'DROP INDEX IX_8D93D649E7927C74;',
+                    ));
+                }
                 break;
             case MariaDBDriver::class:
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -165,18 +177,8 @@ class MigrationTest extends TestCase
     private function testFailedMigration(PaperMigration  $paperMigration): void
     {
         $em = $paperMigration->getEntityManager();
-        $driver = $em->getConnection()->getDriver();
-        if ($driver instanceof MariaDBDriver) {
-            return;
-        }
-        $userColumns = ColumnMapper::getColumns(UserTest::class);
-        $userColumns[3] = (new StringColumn(null, 100, true, null, true))->bindProperty('email');
-        $file = $paperMigration->diff([
-            'user' => [
-                'columns' => $userColumns,
-                'indexes' => []
-            ]
-        ]);
+
+        $paperMigration->generateMigration();
 
         $this->expectException(RuntimeException::class, function () use ($paperMigration){
             $paperMigration->migrate();

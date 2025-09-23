@@ -2,7 +2,7 @@
 
 namespace PhpDevCommunity\PaperORM\Debugger;
 
-final class SqlDebugger
+class SqlDebugger
 {
     private array $queries = [];
 

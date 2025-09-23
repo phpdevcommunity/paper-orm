@@ -53,6 +53,15 @@ final class PaperMigration
         $this->directory = new MigrationDirectory($directory);
     }
 
+    /**
+     * @return array<string>
+     */
+    public function getVersionAlreadyMigrated() : array
+    {
+        $version = $this->getConnection()->fetchAll('SELECT version FROM ' . $this->tableName);
+        return array_column($version, 'version');
+    }
+
     public function generateMigration(array $sqlUp = [], array $sqlDown = []): string
     {
         $i = 1;
@@ -97,10 +106,10 @@ SQL;
         $this->createVersion();
 
         $this->successList = [];
-        $versions = $this->getConnection()->fetchAll('SELECT version FROM ' . $this->tableName);
+        $versions = $this->getVersionAlreadyMigrated();
         foreach ($this->directory->getMigrations() as $version => $migration) {
 
-            if (in_array($version, array_column($versions, 'version'))) {
+            if (in_array($version, $versions)) {
                 continue;
             }
 
