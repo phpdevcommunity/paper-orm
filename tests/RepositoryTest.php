@@ -10,34 +10,30 @@ use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
 
 class RepositoryTest extends TestCase
 {
-    private EntityManager $em;
 
     protected function setUp(): void
     {
-        $this->em = new EntityManager([
-            'driver' => 'sqlite',
-            'user' => null,
-            'password' => null,
-            'memory' => true,
-        ]);
-        $this->setUpDatabaseSchema();
     }
 
     protected function tearDown(): void
     {
-        $this->em->getConnection()->close();
     }
 
     protected function execute(): void
     {
-        $this->testSelectWithoutJoin();
-        $this->testSelectInnerJoin();
-        $this->testSelectLeftJoin();
+        foreach (DataBaseHelperTest::drivers() as $params) {
+            $em = new EntityManager($params);
+            DataBaseHelperTest::init($em);
+            $this->testSelectWithoutJoin($em);
+            $this->testSelectInnerJoin($em);
+            $this->testSelectLeftJoin($em);
+            $em->getConnection()->close();
+        }
     }
 
-    public function testSelectWithoutJoin(): void
+    public function testSelectWithoutJoin(EntityManager  $em): void
     {
-        $userRepository = $this->em->getRepository(UserTest::class);
+        $userRepository = $em->getRepository(UserTest::class);
         $user = $userRepository->findBy()
             ->first()->orderBy('id')->toArray();
 
@@ -80,9 +76,9 @@ class RepositoryTest extends TestCase
         }
     }
 
-    public function testSelectInnerJoin(): void
+    public function testSelectInnerJoin(EntityManager $em): void
     {
-        $userRepository = $this->em->getRepository(UserTest::class);
+        $userRepository = $em->getRepository(UserTest::class);
         $user = $userRepository->findBy()
             ->first()
             ->orderBy('id', 'DESC')
@@ -95,7 +91,7 @@ class RepositoryTest extends TestCase
         $this->assertTrue(is_array( $user['lastPost'] ));
         $this->assertNotEmpty($user['lastPost']);
 
-        $this->em->clear();
+        $em->clear();
         /**
          * @var UserTest $user
          */
@@ -110,12 +106,12 @@ class RepositoryTest extends TestCase
         $this->assertInstanceOf(PostTest::class, $user->getLastPost());
 
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()->orderBy('id', 'DESC')->has(PostTest::class)->toArray();
         $this->assertStrictEquals( 4, $users[0]['id'] );
         $this->assertStrictEquals(4, count($users));
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()->orderBy('id', 'DESC')->has(PostTest::class)->toObject();
         $this->assertStrictEquals( 4, $users[0]->getId() );
         $this->assertStrictEquals(4, count($users));
@@ -132,7 +128,7 @@ class RepositoryTest extends TestCase
             }
         }
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->has('posts.tags')
@@ -148,7 +144,7 @@ class RepositoryTest extends TestCase
             }
         }
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->has('posts.tags')
@@ -166,7 +162,7 @@ class RepositoryTest extends TestCase
             }
         }
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->has('posts.tags')
@@ -188,7 +184,7 @@ class RepositoryTest extends TestCase
             }
         }
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->has('posts.tags')
@@ -207,7 +203,7 @@ class RepositoryTest extends TestCase
             }
         };
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->has('posts.tags')
@@ -226,7 +222,7 @@ class RepositoryTest extends TestCase
                 $this->assertNotEmpty($post->getComments()->toArray());
             }
         };
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->has('lastPost.comments')
@@ -259,9 +255,9 @@ class RepositoryTest extends TestCase
         }
     }
 
-    public function testSelectLeftJoin(): void
+    public function testSelectLeftJoin(EntityManager $em): void
     {
-        $userRepository = $this->em->getRepository(UserTest::class);
+        $userRepository = $em->getRepository(UserTest::class);
         $user = $userRepository->findBy()
             ->first()
             ->orderBy('id', 'DESC')
@@ -274,7 +270,7 @@ class RepositoryTest extends TestCase
         $this->assertEmpty($user['posts']);
         $this->assertNull($user['lastPost']);
 
-        $this->em->clear();
+        $em->clear();
         /**
          * @var UserTest $user
          */
@@ -288,12 +284,12 @@ class RepositoryTest extends TestCase
         $this->assertEmpty($user->getPosts()->toArray());
         $this->assertNull($user->getLastPost());
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()->orderBy('id', 'DESC')->with(PostTest::class)->toArray();
         $this->assertStrictEquals( 5, $users[0]['id'] );
         $this->assertStrictEquals(5, count($users));
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()->orderBy('id', 'DESC')->with(PostTest::class)->toObject();
 
         $this->assertStrictEquals( 5, $users[0]->getId() );
@@ -316,7 +312,7 @@ class RepositoryTest extends TestCase
             }
         }
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->with('posts.tags')
@@ -336,7 +332,7 @@ class RepositoryTest extends TestCase
             }
         }
 
-        $this->em->clear();
+        $em->clear();
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->with('posts.tags')
@@ -359,8 +355,5 @@ class RepositoryTest extends TestCase
             }
         }
     }
-    protected function setUpDatabaseSchema(): void
-    {
-        DataBaseHelperTest::init($this->em);
-    }
+
 }

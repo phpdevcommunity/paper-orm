@@ -15,7 +15,7 @@ final class PaperConnection
 
     private DriverInterface $driver;
 
-    private bool $debug = false;
+    private bool $debug;
 
     public function __construct(DriverInterface $driver, array $params)
     {
@@ -79,7 +79,7 @@ final class PaperConnection
 
     public function connect(): bool
     {
-        if ($this->pdo === null) {
+        if (!$this->isConnected()) {
             $this->pdo = $this->driver->connect($this->params);
             if ($this->debug) {
                 $this->pdo->enableSqlDebugger();
@@ -98,6 +98,14 @@ final class PaperConnection
     public function close(): void
     {
         $this->pdo = null;
+    }
+
+
+    public function cloneConnectionWithoutDbname(): self
+    {
+        $params = $this->params;
+        unset($params['dbname']);
+        return new self($this->driver, $params);
     }
 
 }

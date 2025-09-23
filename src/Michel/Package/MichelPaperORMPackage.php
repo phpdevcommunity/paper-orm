@@ -11,6 +11,7 @@ use PhpDevCommunity\PaperORM\Command\MigrationMigrateCommand;
 use PhpDevCommunity\PaperORM\Command\QueryExecuteCommand;
 use PhpDevCommunity\PaperORM\Command\ShowTablesCommand;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
 use PhpDevCommunity\PaperORM\Parser\DSNParser;
 use Psr\Container\ContainerInterface;
@@ -20,6 +21,9 @@ class MichelPaperORMPackage implements PackageInterface
     public function getDefinitions(): array
     {
         return [
+            EntityManagerInterface::class => static function (ContainerInterface $container) {
+                return $container->get(EntityManager::class);
+            },
             EntityManager::class => static function (ContainerInterface $container) {
                 $dsn = $container->get('database.dsn');
                 if (!is_string($dsn) || empty($dsn)) {
@@ -30,7 +34,7 @@ class MichelPaperORMPackage implements PackageInterface
             },
             PaperMigration::class => static function (ContainerInterface $container) {
                 return PaperMigration::create(
-                    $container->get(EntityManager::class),
+                    $container->get(EntityManagerInterface::class),
                     $container->get('paper.migration.table'),
                     $container->get('paper.migration.dir')
                 );
@@ -39,7 +43,7 @@ class MichelPaperORMPackage implements PackageInterface
                 return new MigrationDiffCommand($container->get(PaperMigration::class), $container->get('paper.entity.dir'));
             },
             DatabaseDropCommand::class => static function (ContainerInterface $container) {
-                return new DatabaseDropCommand($container->get(EntityManager::class), $container->get('michel.environment'));
+                return new DatabaseDropCommand($container->get(EntityManagerInterface::class), $container->get('michel.environment'));
             }
         ];
     }

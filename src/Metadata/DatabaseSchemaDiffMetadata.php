@@ -3,6 +3,7 @@
 namespace PhpDevCommunity\PaperORM\Metadata;
 
 use LogicException;
+use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 
 final class DatabaseSchemaDiffMetadata
 {
@@ -10,6 +11,11 @@ final class DatabaseSchemaDiffMetadata
     private array $columnsToUpdate = [];
     private array $columnsToDelete = [];
     private array $originalColumns = [];
+
+
+    private array $foreignKeyToAdd = [];
+    private array $foreignKeyToDrop = [];
+    private array $originalForeignKeys = [];
 
 
     private array $indexesToAdd = [];
@@ -28,6 +34,9 @@ final class DatabaseSchemaDiffMetadata
         array $columnsToUpdate,
         array $columnsToDelete,
         array $originalColumns,
+        array $foreignKeyToAdd,
+        array $foreignKeyToDrop,
+        array $originalForeignKeys,
         array $indexesToAdd,
         array $indexesToUpdate,
         array $indexesToDelete,
@@ -60,6 +69,29 @@ final class DatabaseSchemaDiffMetadata
                 throw new LogicException(sprintf("The column '%s' is not supported.", get_class($column)));
             }
             $this->originalColumns[$column->getName()] = $column;
+        }
+
+
+        foreach ($foreignKeyToAdd as $foreignKey) {
+            if (!$foreignKey instanceof ForeignKeyMetadata) {
+                throw new LogicException(sprintf("The foreign key '%s' is not supported.", get_class($foreignKey)));
+            }
+            $this->foreignKeyToAdd[$foreignKey->getName()] = $foreignKey;
+        }
+
+
+        foreach ($foreignKeyToDrop as $foreignKey) {
+            if (!$foreignKey instanceof ForeignKeyMetadata) {
+                throw new LogicException(sprintf("The foreign key '%s' is not supported.", get_class($foreignKey)));
+            }
+            $this->foreignKeyToDrop[$foreignKey->getName()] = $foreignKey;
+        }
+
+        foreach ($originalForeignKeys as $foreignKey) {
+            if (!$foreignKey instanceof ForeignKeyMetadata) {
+                throw new LogicException(sprintf("The foreign key '%s' is not supported.", get_class($foreignKey)));
+            }
+            $this->originalForeignKeys[$foreignKey->getName()] = $foreignKey;
         }
 
 
@@ -122,6 +154,30 @@ final class DatabaseSchemaDiffMetadata
             throw new LogicException(sprintf("The column '%s' is not supported.", $name));
         }
         return $this->originalColumns[$name];
+    }
+
+    /**
+     * @return array<ForeignKeyMetadata>
+     */
+    public function getForeignKeyToAdd(): array
+    {
+        return $this->foreignKeyToAdd;
+    }
+
+    /**
+     * @return array<ForeignKeyMetadata>
+     */
+    public function getForeignKeyToDrop(): array
+    {
+        return $this->foreignKeyToDrop;
+    }
+
+    public function getOriginalForeignKey(string $name): ForeignKeyMetadata
+    {
+        if (!isset($this->originalForeignKeys[$name])) {
+            throw new LogicException(sprintf("The foreign key '%s' is not supported.", $name));
+        }
+        return $this->originalForeignKeys[$name];
     }
 
 

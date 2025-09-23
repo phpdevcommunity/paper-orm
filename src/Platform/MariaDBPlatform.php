@@ -21,16 +21,15 @@ use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
 use PhpDevCommunity\PaperORM\PaperConnection;
 use PhpDevCommunity\PaperORM\Parser\SQLTypeParser;
+use PhpDevCommunity\PaperORM\Schema\MariaDBSchema;
 use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
-use PhpDevCommunity\PaperORM\Schema\SqliteSchema;
-use RuntimeException;
 
-class SqlitePlatform extends AbstractPlatform
+class MariaDBPlatform extends AbstractPlatform
 {
     private PaperConnection $connection;
-    private SqliteSchema $schema;
+    private MariaDBSchema $schema;
 
-    public function __construct(PaperConnection $connection, SqliteSchema $schema)
+    public function __construct(PaperConnection $connection, MariaDBSchema $schema)
     {
         $this->connection = $connection;
         $this->schema = $schema;
@@ -38,20 +37,18 @@ class SqlitePlatform extends AbstractPlatform
 
     public function getDatabaseName(): string
     {
-        $memory = $this->connection->getParams()['memory'] ?? false;
-        if ($memory) {
-            return ':memory:';
-        }
-        return $this->connection->getParams()['path'] ?? '';
+        return $this->connection->getParams()['dbname'] ?? '';
     }
 
     public function listTables(): array
     {
         $rows = $this->connection->fetchAll($this->schema->showTables());
         $tables = [];
-        foreach ($rows as $row) {
-            $tables[] = $row['name'];
+        foreach ($rows as $table) {
+            $table = array_values($table);
+            $tables[] = $table[0];
         }
+        rsort($tables, SORT_STRING);
         return $tables;
     }
 
@@ -61,33 +58,37 @@ class SqlitePlatform extends AbstractPlatform
      */
     public function listTableColumns(string $tableName): array
     {
+        $tables = $this->listTables();
+        if (!in_array($tableName, $tables)) {
+            return [];
+        }
         $rows = $this->connection->fetchAll($this->schema->showTableColumns($tableName));
         $foreignKeys = $this->connection->fetchAll($this->schema->showForeignKeys($tableName));
         $columns = [];
         foreach ($rows as $row) {
             $foreignKeyMetadata = null;
             foreach ($foreignKeys as $foreignKey) {
-                if ($row['name'] == $foreignKey['from']) {
+                if ($row['Field'] == $foreignKey['COLUMN_NAME']) {
                     $foreignKeyMetadata = ForeignKeyMetadata::fromArray([
-                        'name' => $this->generateForeignKeyName($tableName, [$row['name']]),
-                        'columns' => [$row['name']],
-                        'referenceTable' => $foreignKey['table'],
-                        'referenceColumns' => [$foreignKey['to']],
-                        'onDelete' => $this->convertForeignKeyRuleStringToCode($foreignKey['on_delete']),
-                        'onUpdate' => $this->convertForeignKeyRuleStringToCode($foreignKey['on_update']),
+                        'name' => $foreignKey['CONSTRAINT_NAME'],
+                        'columns' => [$row['Field']],
+                        'referenceTable' => $foreignKey['REFERENCED_TABLE_NAME'],
+                        'referenceColumns' => [$foreignKey['REFERENCED_COLUMN_NAME']],
+                        'onDelete' => $this->convertForeignKeyRuleStringToCode($foreignKey['DELETE_RULE']),
+                        'onUpdate' => $this->convertForeignKeyRuleStringToCode($foreignKey['UPDATE_RULE']),
                     ]);
                     break;
                 }
             }
             $columnMetadata = ColumnMetadata::fromArray([
-                'name' => $row['name'],
-                'type' => SQLTypeParser::getBaseType($row['type']),
-                'primary' => boolval($row['pk']) == true,
+                'name' => $row['Field'],
+                'type' => SQLTypeParser::getBaseType($row['Type']),
+                'primary' => ($row['Key'] === 'PRI'),
                 'foreignKeyMetadata' => $foreignKeyMetadata,
-                'null' => boolval($row['notnull']) == false,
-                'default' => $row['dflt_value'] ?? null,
+                'null' => ($row['Null'] === 'YES'),
+                'default' => $row['Default'] ?? null,
                 'comment' => $row['comment'] ?? null,
-                'attributes' => SQLTypeParser::extractTypedParameters($row['type']),
+                'attributes' => SQLTypeParser::extractTypedParameters($row['Type']),
             ]);
             $columns[] = $columnMetadata;
         }
@@ -100,16 +101,32 @@ class SqlitePlatform extends AbstractPlatform
      */
     public function listTableIndexes(string $tableName): array
     {
+        $tables = $this->listTables();
+        if (!in_array($tableName, $tables)) {
+            return [];
+        }
         $indexes = $this->connection->fetchAll($this->schema->showTableIndexes($tableName));
-        $indexesFormatted = [];
+        $indexByColumns = [];
         foreach ($indexes as $index) {
-            $info = $this->connection->fetchAll(sprintf("PRAGMA index_info('%s')", $index['name']));
-            $indexesFormatted[] = IndexMetadata::fromArray([
-                'tableName' => $tableName,
-                'name' => $index['name'],
-                'columns' => array_column($info, 'name'),
-                'unique' => $index['unique'],
-            ]);
+            $indexName = $index['Key_name'];
+            if (isset($indexByColumns[$indexName])) {
+                $indexByColumns[$indexName]['columns'][] = $index['Column_name'];
+                continue;
+            }
+            if ($indexName === 'PRIMARY') {
+                continue;
+            }
+            $indexByColumns[$indexName] = [
+                'tableName' => $index['Table'],
+                'name' => $indexName,
+                'columns' => [$index['Column_name']],
+                'unique' => ((int)$index['Non_unique'] === 0),
+            ];
+        }
+
+        $indexesFormatted = [];
+        foreach ($indexByColumns as $idx) {
+            $indexesFormatted[] = IndexMetadata::fromArray($idx);
         }
         return $indexesFormatted;
     }
@@ -121,50 +138,26 @@ class SqlitePlatform extends AbstractPlatform
 
     public function createDatabase(): void
     {
-        $database = $this->getDatabaseName();
-        if ($database == ':memory:') {
-            return;
-        }
-
-        if (empty($database)) {
-            throw new RuntimeException(sprintf("The database name cannot be empty. %s::createDatabase()", __CLASS__));
-        }
-
-        $databaseFile = pathinfo($database);
-        if (empty($databaseFile['extension'])) {
-            throw new RuntimeException(sprintf("The database name '%s' must have an extension.", $database));
-        }
-
-        if (file_exists($database)) {
-            throw new LogicException(sprintf("The database '%s' already exists.", $database));
-        }
-
-        touch($database);
-        chmod($database, 0666);
+        $connection = $this->connection->cloneConnectionWithoutDbname();
+        $connection->executeStatement($this->schema->createDatabase($this->getDatabaseName()));
     }
 
     public function createDatabaseIfNotExists(): void
     {
-        try {
-            $this->createDatabase();
-        } catch (LogicException $e) {
-            return;
-        }
+        $connection = $this->connection->cloneConnectionWithoutDbname();
+        $connection->executeStatement($this->schema->createDatabaseIfNotExists($this->getDatabaseName()));
     }
 
     public function dropDatabase(): void
     {
+        $connection = $this->connection->cloneConnectionWithoutDbname();
         $database = $this->getDatabaseName();
-        if (!file_exists($database)) {
-            return;
-        }
-
-        unlink($database);
+        $connection->executeStatement($this->schema->dropDatabase($database));
     }
 
     public function createTable(string $tableName, array $columns): int
     {
-        return $this->connection->executeStatement($this->schema->createTable($tableName, $this->mapColumnsToMetadata($tableName, $columns)));
+        return $this->executeStatement($this->schema->createTable($tableName, $this->mapColumnsToMetadata($tableName, $columns)));
     }
 
     public function createTableIfNotExists(string $tableName, array $columns, array $options = []): int
@@ -204,12 +197,12 @@ class SqlitePlatform extends AbstractPlatform
 
     public function createForeignKeyConstraint(string $tableName, ForeignKeyMetadata $foreignKey): int
     {
-        throw new LogicException(sprintf("The method '%s' is not supported by the platform interface.", __METHOD__));
+        return $this->executeStatement($this->schema->createForeignKeyConstraint($tableName, $foreignKey));
     }
 
     public function dropForeignKeyConstraints(string $tableName, string $foreignKeyName): int
     {
-        throw new LogicException(sprintf("The method '%s' is not supported by the platform interface.", __METHOD__));
+        return $this->executeStatement($this->schema->dropForeignKeyConstraints($tableName, $foreignKeyName));
     }
 
     public function getMaxLength(): int
@@ -231,48 +224,48 @@ class SqlitePlatform extends AbstractPlatform
     {
         return [
             PrimaryKeyColumn::class => [
-                'type' => 'INTEGER',
-                'args' => [],
+                'type' => 'INT',
+                'args' => [11]
             ],
             IntColumn::class => [
-                'type' => 'INTEGER',
-                'args' => [],
+                'type' => 'INT',
+                'args' => [11]
             ],
             JoinColumn::class => [
-                'type' => 'INTEGER',
-                'args' => [],
+                'type' => 'INT',
+                'args' => [11]
             ],
             DecimalColumn::class => [
                 'type' => 'DECIMAL',
-                'args' => [10, 5],
+                'args' => [10, 5]
             ],
             FloatColumn::class => [
                 'type' => 'FLOAT',
-                'args' => [],
+                'args' => []
             ],
             DateColumn::class => [
                 'type' => 'DATE',
-                'args' => [],
+                'args' => []
             ],
             DateTimeColumn::class => [
                 'type' => 'DATETIME',
-                'args' => [],
+                'args' => []
             ],
             BoolColumn::class => [
-                'type' => 'BOOLEAN',
-                'args' => [],
+                'type' => 'TINYINT',
+                'args' => [1]
             ],
             TextColumn::class => [
                 'type' => 'TEXT',
-                'args' => [],
+                'args' => []
             ],
             JsonColumn::class => [
                 'type' => 'JSON',
-                'args' => [],
+                'args' => []
             ],
             StringColumn::class => [
                 'type' => 'VARCHAR',
-                'args' => [255],
+                'args' => [255]
             ],
         ];
     }
@@ -285,8 +278,6 @@ class SqlitePlatform extends AbstractPlatform
                 return ForeignKeyMetadata::CASCADE;
             case 'SET NULL':
                 return ForeignKeyMetadata::SET_NULL;
-            case 'SET DEFAULT':
-                return ForeignKeyMetadata::SET_DEFAULT;
             case 'RESTRICT':
                 return ForeignKeyMetadata::RESTRICT;
             case 'NO ACTION':   /* fall-through */
@@ -298,5 +289,17 @@ class SqlitePlatform extends AbstractPlatform
     public function getSchema(): SchemaInterface
     {
         return $this->schema;
+    }
+
+    public function executeStatement(string $sql): int
+    {
+        $result = 0;
+        foreach (explode(';', $sql) as $stmt) {
+            $stmt = trim($stmt);
+            if (!empty($stmt)) {
+                $result += $this->connection->executeStatement($stmt);
+            }
+        }
+        return $result;
     }
 }

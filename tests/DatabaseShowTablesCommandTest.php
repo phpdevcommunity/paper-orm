@@ -14,30 +14,36 @@ use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
+use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
 
 class DatabaseShowTablesCommandTest extends TestCase
 {
-    private EntityManager $em;
 
     protected function setUp(): void
     {
-        $this->em = new EntityManager([
-            'driver' => 'sqlite',
-            'user' => null,
-            'password' => null,
-            'memory' => true,
-        ]);
 
     }
 
     protected function tearDown(): void
     {
-        $this->em->getConnection()->close();
     }
 
     protected function execute(): void
     {
-        $platform = $this->em->createDatabasePlatform();
+        foreach (DataBaseHelperTest::drivers() as $params) {
+            $em = new EntityManager($params);
+            $this->executeTest($em);
+            $em->getConnection()->close();
+        }
+    }
+
+    private function executeTest(EntityManager $em)
+    {
+
+        $platform = $em->createDatabasePlatform();
+        $platform->createDatabaseIfNotExists();
+        $platform->dropDatabase();
+        $platform->createDatabaseIfNotExists();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -49,17 +55,18 @@ class DatabaseShowTablesCommandTest extends TestCase
 
         $platform->createTable('post', [
             new PrimaryKeyColumn('id'),
-            new JoinColumn('user_id', 'id', UserTest::class),
+            new JoinColumn('user_id', UserTest::class),
             new StringColumn('title'),
             new StringColumn('content'),
         ]);
 
         $runner = new CommandRunner([
-            new ShowTablesCommand($this->em)
+            new ShowTablesCommand($em)
         ]);
 
         $code = $runner->run(new CommandParser(['', 'paper:show:tables', '--columns']), new Output(function ($message) use(&$countMessages) {
         }));
         $this->assertEquals(0, $code);
+
     }
 }

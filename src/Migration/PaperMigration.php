@@ -6,6 +6,7 @@ use DateTime;
 use PDOException;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Generator\SchemaDiffGenerator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
@@ -21,8 +22,8 @@ use function file_put_contents;
 final class PaperMigration
 {
 
-    /** @var EntityManager The EntityManager to use for migrations. */
-    private EntityManager $em;
+    /** @var EntityManagerInterface The EntityManager to use for migrations. */
+    private EntityManagerInterface $em;
     private PlatformInterface $platform;
     private string $tableName;
 
@@ -33,18 +34,18 @@ final class PaperMigration
      */
     private MigrationDirectory $directory;
 
-    public static function create(EntityManager $em, string $tableName, string $directory): self
+    public static function create(EntityManagerInterface $em, string $tableName, string $directory): self
     {
         return new self($em, $tableName, $directory);
     }
 
     /**
      * MigrateService constructor.
-     * @param EntityManager $em
+     * @param EntityManagerInterface $em
      * @param string $tableName
      * @param string $directory
      */
-    private function __construct(EntityManager $em, string $tableName, string $directory)
+    private function __construct(EntityManagerInterface $em, string $tableName, string $directory)
     {
         $this->em = $em;
         $this->platform = $em->createDatabasePlatform();
@@ -226,7 +227,7 @@ SQL;
         return $this->successList;
     }
 
-    public function getEntityManager(): EntityManager
+    public function getEntityManager(): EntityManagerInterface
     {
         return $this->em;
     }

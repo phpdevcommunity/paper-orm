@@ -2,6 +2,8 @@
 
 namespace PhpDevCommunity\PaperORM\Schema;
 
+use PhpDevCommunity\PaperORM\Mapping\Column\Column;
+use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
 
@@ -80,10 +82,19 @@ interface SchemaInterface
      * Adds a new foreign key constraint.
      *
      * @param string $tableName The name of the table to modify.
-     * @param ColumnMetadata $columnMetadata
+     * @param ForeignKeyMetadata $foreignKey The instance of the foreign key.
      * @return string Returns the SQL query for adding the foreign key constraint.
      */
-    public function createForeignKeyConstraints(string $tableName, ColumnMetadata $columnMetadata) :string;
+    public function createForeignKeyConstraint(string $tableName, ForeignKeyMetadata $foreignKey) :string;
+
+    /**
+     * Drops an existing foreign key constraint.
+     *
+     * @param string $tableName The name of the table to modify.
+     * @param string $foreignKeyName The name of the foreign key to drop.
+     * @return string Returns the SQL query for dropping the foreign key constraint.
+     */
+    public function dropForeignKeyConstraints( string $tableName, string $foreignKeyName): string;
 
     /**
      * Drops an existing table.
@@ -200,5 +211,7 @@ interface SchemaInterface
      * @return bool True if supported, false otherwise.
      */
     public function supportsAddForeignKey(): bool;
+
+    public function supportsDropForeignKey(): bool;
 
 }

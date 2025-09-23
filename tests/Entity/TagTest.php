@@ -19,7 +19,7 @@ class TagTest implements EntityInterface
     #[StringColumn]
     private ?string $name = null;
 
-    #[JoinColumn(name : 'post_id', referencedColumnName : 'id', targetEntity : PostTest::class)]
+    #[JoinColumn(name : 'post_id', targetEntity : PostTest::class)]
     private ?PostTest $post = null;
 
     static public function getTableName(): string
@@ -40,7 +40,7 @@ class TagTest implements EntityInterface
         return [
             (new PrimaryKeyColumn())->bindProperty('id'),
             (new StringColumn())->bindProperty('name'),
-            (new JoinColumn( 'post_id', 'id', PostTest::class))->bindProperty('post'),
+            (new JoinColumn( 'post_id', PostTest::class))->bindProperty('post'),
         ];
     }
 

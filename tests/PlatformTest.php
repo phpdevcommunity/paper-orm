@@ -9,41 +9,41 @@ use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\UniTester\TestCase;
+use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
 
 class PlatformTest extends TestCase
 {
-    private EntityManager $em;
 
     protected function setUp(): void
     {
-        $this->em = new EntityManager([
-            'driver' => 'sqlite',
-            'user' => null,
-            'password' => null,
-            'memory' => true,
-        ]);
 
     }
 
     protected function tearDown(): void
     {
-        $this->em->getConnection()->close();
     }
 
     protected function execute(): void
     {
-      $this->testCreateTables();
-      $this->testDropTable();
-      $this->testDropColumn();
-      $this->testAddColumn();
-      $this->testRenameColumn();
+        foreach (DataBaseHelperTest::drivers() as $params) {
+            $em = new EntityManager($params);
+            $this->testCreateTables($em);
+            $this->testDropTable($em);
+            $this->testDropColumn($em);
+            $this->testAddColumn($em);
+            $this->testRenameColumn($em);
+            $em->getConnection()->close();
+        }
     }
 
-    public function testCreateTables()
+    public function testCreateTables(EntityManager $em)
     {
-        $this->em->getConnection()->close();
-        $this->em->getConnection()->connect();
-        $platform = $this->em->createDatabasePlatform();
+        $em->getConnection()->close();
+        $em->getConnection()->connect();
+        $platform = $em->createDatabasePlatform();
+        $platform->createDatabaseIfNotExists();
+        $platform->dropDatabase();
+        $platform->createDatabaseIfNotExists();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -59,8 +59,6 @@ class PlatformTest extends TestCase
             new IntColumn('user_id'),
             new StringColumn('title'),
             new StringColumn('content'),
-        ], [
-            'FOREIGN KEY (user_id) REFERENCES user (id)'
         ]);
 
         $this->assertStrictEquals(2, count($platform->listTables()));
@@ -68,12 +66,16 @@ class PlatformTest extends TestCase
     }
 
 
-    public function testDropTable()
+    public function testDropTable(EntityManager $em)
     {
-        $this->em->getConnection()->close();
-        $this->em->getConnection()->connect();
+        $em->getConnection()->close();
+        $em->getConnection()->connect();
+        $platform = $em->createDatabasePlatform();
+        $platform->createDatabaseIfNotExists();
+        $platform->dropDatabase();
+        $platform->createDatabaseIfNotExists();
 
-        $platform = $this->em->createDatabasePlatform();
+        $platform = $em->createDatabasePlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -88,16 +90,20 @@ class PlatformTest extends TestCase
         $this->assertStrictEquals(0, count($platform->listTables()));
     }
 
-    public function testDropColumn()
+    public function testDropColumn(EntityManager $em)
     {
-        if (\SQLite3::version()['versionString'] < '3.35.0') {
+        $platform = $em->createDatabasePlatform();
+        if ($platform->getSchema()->supportsDropColumn() === false) {
             return;
         }
 
-        $this->em->getConnection()->close();
-        $this->em->getConnection()->connect();
+        $em->getConnection()->close();
+        $em->getConnection()->connect();
+        $platform = $em->createDatabasePlatform();
+        $platform->createDatabaseIfNotExists();
+        $platform->dropDatabase();
+        $platform->createDatabaseIfNotExists();
 
-        $platform = $this->em->createDatabasePlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -112,12 +118,16 @@ class PlatformTest extends TestCase
         $this->assertStrictEquals(5, count($platform->listTableColumns('user')));
     }
 
-    public function testAddColumn()
+    public function testAddColumn(EntityManager $em)
     {
-        $this->em->getConnection()->close();
-        $this->em->getConnection()->connect();
+        $em->getConnection()->close();
+        $em->getConnection()->connect();
+        $platform = $em->createDatabasePlatform();
+        $platform->createDatabaseIfNotExists();
+        $platform->dropDatabase();
+        $platform->createDatabaseIfNotExists();
 
-        $platform = $this->em->createDatabasePlatform();
+        $platform = $em->createDatabasePlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -132,12 +142,16 @@ class PlatformTest extends TestCase
         $this->assertStrictEquals(7, count($platform->listTableColumns('user')));
     }
 
-    public function testRenameColumn()
+    public function testRenameColumn(EntityManager $em)
     {
-        $this->em->getConnection()->close();
-        $this->em->getConnection()->connect();
+        $em->getConnection()->close();
+        $em->getConnection()->connect();
+        $platform = $em->createDatabasePlatform();
+        $platform->createDatabaseIfNotExists();
+        $platform->dropDatabase();
+        $platform->createDatabaseIfNotExists();
 
-        $platform = $this->em->createDatabasePlatform();
+        $platform = $em->createDatabasePlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),

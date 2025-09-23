@@ -7,7 +7,6 @@ use PhpDevCommunity\PaperORM\Types\IntType;
 #[\Attribute(\Attribute::TARGET_PROPERTY | \Attribute::IS_REPEATABLE)]
 final class IntColumn extends Column
 {
-
     public function __construct(
         string $name = null,
         bool   $nullable = false,

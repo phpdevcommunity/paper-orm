@@ -4,8 +4,11 @@ namespace PhpDevCommunity\PaperORM\Generator;
 
 use LogicException;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
+use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Index;
+use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 
 final class SchemaDiffGenerator
 {
@@ -20,24 +23,35 @@ final class SchemaDiffGenerator
     {
         $tablesExist = $this->platform->listTables();
         $schema = $this->platform->getSchema();
-        $sqlUp = [];
-        $sqlDown = [];
         foreach ($tables as $tableName => $tableData) {
-
             if (!isset($tableData['columns'])) {
                 throw new LogicException(sprintf(
                     "Missing column definitions for table '%s'. Each table must have a 'columns' key with its column structure.",
                     $tableName
                 ));
             }
-
             if (!isset($tableData['indexes'])) {
                 throw new LogicException(sprintf(
                     "Missing index definitions for table '%s'. Ensure the 'indexes' key is set, even if empty, to maintain consistency.",
                     $tableName
                 ));
             }
+        }
 
+        list( $sqlUp, $sqlDown) = $this->createTables($tables, $schema, $tablesExist);
+        return [
+            'up' => $sqlUp,
+            'down' => $sqlDown
+        ];
+    }
+
+    private function createTables(array $tables,SchemaInterface $schema, array $tablesExist): array
+    {
+        $sqlUp = [];
+        $sqlDown = [];
+        $sqlForeignKeyUp = [];
+        $sqlForeignKeyDown = [];
+        foreach ($tables as $tableName => $tableData) {
             /**
              * @var array<Column> $columns
              * @var array<Index> $indexes
@@ -56,10 +70,14 @@ final class SchemaDiffGenerator
                 $indexes = [];
             }
 
+
             $diff = $this->platform->diff($tableName, $columns, $indexes);
             $columnsToAdd = $diff->getColumnsToAdd();
             $columnsToUpdate = $diff->getColumnsToUpdate();
             $columnsToDelete = $diff->getColumnsToDelete();
+
+            $foreignKeyToAdd = $diff->getForeignKeyToAdd();
+            $foreignKeyToDrop = $diff->getForeignKeyToDrop();
 
             $indexesToAdd = $diff->getIndexesToAdd();
             $indexesToUpdate = $diff->getIndexesToUpdate();
@@ -71,6 +89,16 @@ final class SchemaDiffGenerator
                     $sqlUp[] = $schema->createIndex($index);
                     $sqlDown[] = $schema->dropIndex($index);
                 }
+
+                foreach ($foreignKeyToAdd as $foreignKey) {
+                    if ($schema->supportsAddForeignKey()) {
+                        $sqlForeignKeyUp[] = $schema->createForeignKeyConstraint($tableName, $foreignKey);
+                    }
+                    if ($schema->supportsDropForeignKey()) {
+                        $sqlForeignKeyDown[] = $schema->dropForeignKeyConstraints($tableName, $foreignKey->getName());
+                    }
+                }
+
                 $sqlDown[] = $schema->dropTable($tableName);
                 continue;
             }
@@ -90,6 +118,14 @@ final class SchemaDiffGenerator
             foreach ($indexesToAdd as $index) {
                 $sqlUp[] = $schema->createIndex($index);
                 $sqlDown[] = $schema->dropIndex($index);
+            }
+            foreach ($foreignKeyToAdd as $foreignKey) {
+                if ($schema->supportsAddForeignKey()) {
+                    $sqlUp[] = $schema->createForeignKeyConstraint($tableName, $foreignKey);
+                }
+                if ($schema->supportsDropForeignKey()) {
+                    $sqlDown[] = $schema->dropForeignKeyConstraints($tableName, $foreignKey->getName());
+                }
             }
 
             foreach ($columnsToUpdate as $column) {
@@ -130,13 +166,20 @@ final class SchemaDiffGenerator
                 $sqlDown[] = $schema->dropIndex($index);
                 $sqlDown[] = $schema->createIndex($diff->getOriginalIndex($index->getName()));
             }
+
+            foreach ($foreignKeyToDrop as $foreignKey) {
+                if ($schema->supportsDropForeignKey()) {
+                    $sqlForeignKeyUp[] = $schema->dropForeignKeyConstraints($tableName, $foreignKey->getName());
+                }
+
+                if ($schema->supportsAddForeignKey()) {
+                    $sqlForeignKeyDown[] = $schema->createForeignKeyConstraint($tableName, $diff->getOriginalForeignKey($foreignKey->getName()));
+                }
+            }
         }
 
-
-        return [
-            'up' => $sqlUp,
-            'down' => $sqlDown
-        ];
+        $sqlUp = array_merge($sqlUp, $sqlForeignKeyUp);
+        $sqlDown = array_merge($sqlForeignKeyDown, $sqlDown);
+        return [$sqlUp, $sqlDown];
     }
-
 }

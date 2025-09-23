@@ -8,7 +8,7 @@ use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use PhpDevCommunity\PaperORM\Repository\Repository;
 
-class EntityManager
+class EntityManager implements EntityManagerInterface
 {
     private PaperConnection $connection;
 

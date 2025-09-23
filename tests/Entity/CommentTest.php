@@ -33,7 +33,7 @@ class CommentTest implements EntityInterface, TableMetadataInterface
         return [
             (new PrimaryKeyColumn())->bindProperty('id'),
             (new StringColumn())->bindProperty('body'),
-            (new JoinColumn('post_id', 'id', PostTest::class))->bindProperty('post'),
+            (new JoinColumn('post_id', PostTest::class))->bindProperty('post'),
         ];
     }
 

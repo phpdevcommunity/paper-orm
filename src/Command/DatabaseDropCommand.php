@@ -9,14 +9,15 @@ use PhpDevCommunity\Console\Option\CommandOption;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
 use PhpDevCommunity\Console\OutputInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 
 class DatabaseDropCommand implements CommandInterface
 {
-    private EntityManager $entityManager;
+    private EntityManagerInterface $entityManager;
 
     private ?string $env;
 
-    public function __construct(EntityManager $entityManager, ?string $env = null)
+    public function __construct(EntityManagerInterface $entityManager, ?string $env = null)
     {
         $this->entityManager = $entityManager;
         $this->env = $env;

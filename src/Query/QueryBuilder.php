@@ -5,6 +5,7 @@ namespace PhpDevCommunity\PaperORM\Query;
 use InvalidArgumentException;
 use LogicException;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Hydrator\ArrayHydrator;
 use PhpDevCommunity\PaperORM\Hydrator\EntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
@@ -16,7 +17,7 @@ use PhpDevCommunity\Sql\QL\JoinQL;
 
 final class QueryBuilder
 {
-    private EntityManager $em;
+    private EntityManagerInterface $em;
 
     private string $primaryKey;
 
@@ -30,7 +31,7 @@ final class QueryBuilder
 
     private ?int $maxResults = null;
 
-    public function __construct(EntityManager $em, string $primaryKey = 'id')
+    public function __construct(EntityManagerInterface $em, string $primaryKey = 'id')
     {
         $this->em = $em;
         $this->aliasGenerator = new AliasGenerator();

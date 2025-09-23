@@ -9,12 +9,13 @@ use PhpDevCommunity\Console\Option\CommandOption;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
 use PhpDevCommunity\Console\OutputInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 
 class ShowTablesCommand implements CommandInterface
 {
-    private EntityManager $entityManager;
-    public function __construct(EntityManager $entityManager)
+    private EntityManagerInterface $entityManager;
+    public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
     }

@@ -4,12 +4,15 @@ namespace PhpDevCommunity\PaperORM\Driver;
 
 use Exception;
 use PhpDevCommunity\PaperORM\PaperConnection;
+use PhpDevCommunity\PaperORM\Platform\MariaDBPlatform;
 
 class DriverManager
 {
     private static array $driverSchemeAliases = [
         'sqlite' => SqliteDriver::class,
         'sqlite3' => SqliteDriver::class,
+        'mysql' => MariaDBDriver::class,
+        'mariadb' => MariaDBDriver::class
     ];
 
     public static function getConnection(string $driver, array $params): PaperConnection

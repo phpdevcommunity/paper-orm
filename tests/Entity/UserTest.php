@@ -40,7 +40,7 @@ class UserTest implements EntityInterface
     #[OneToMany(targetEntity: PostTest::class, mappedBy: 'user')]
     private ObjectStorage $posts;
 
-    #[JoinColumn(name: 'last_post_id', referencedColumnName: 'id', targetEntity: PostTest::class)]
+    #[JoinColumn(name: 'last_post_id', targetEntity: PostTest::class, nullable: true, unique: true, onDelete: JoinColumn::SET_NULL)]
     private ?PostTest $lastPost = null;
     public function __construct()
     {
@@ -72,7 +72,7 @@ class UserTest implements EntityInterface
             (new BoolColumn( 'is_active'))->bindProperty('active'),
             (new DateTimeColumn( 'created_at'))->bindProperty('createdAt'),
             (new OneToMany( PostTest::class,  'user'))->bindProperty('posts'),
-            (new JoinColumn( 'last_post_id', 'id', PostTest::class))->bindProperty('lastPost'),
+            (new JoinColumn( 'last_post_id', PostTest::class, 'id', true, true, JoinColumn::SET_NULL))->bindProperty('lastPost'),
         ];
     }
 

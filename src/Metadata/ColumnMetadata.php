@@ -7,13 +7,14 @@ use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 
 class ColumnMetadata
 {
     private string $name;
     private string $type;
     private bool $isPrimary;
-    private array $foreignKeyMetadata;
+    private ?ForeignKeyMetadata $foreignKeyMetadata = null;
     private bool $isNullable;
     private $defaultValue;
     private ?string $comment;
@@ -21,22 +22,22 @@ class ColumnMetadata
     private ?IndexMetadata $indexMetadata;
 
     public function __construct(
-        string  $name,
-        string  $type,
-        bool    $isPrimary = false,
-        array   $foreignKeyMetadata = [],
-        bool    $isNullable = true,
-                $defaultValue = null,
-        ?string $comment = null,
-        array   $attributes = []
+        string              $name,
+        string              $type,
+        bool                $isPrimary = false,
+        bool                $isNullable = true,
+                            $defaultValue = null,
+        ?ForeignKeyMetadata $foreignKeyMetadata = null,
+        ?string             $comment = null,
+        array               $attributes = []
     )
     {
         $this->name = $name;
         $this->type = strtoupper($type);
         $this->isPrimary = $isPrimary;
-        $this->foreignKeyMetadata = $foreignKeyMetadata;
         $this->isNullable = $isNullable;
         $this->defaultValue = $defaultValue;
+        $this->foreignKeyMetadata = $foreignKeyMetadata;
         $this->comment = $comment;
         $this->attributes = $attributes;
     }
@@ -65,7 +66,7 @@ class ColumnMetadata
         return $this->isPrimary;
     }
 
-    public function getForeignKeyMetadata(): array
+    public function getForeignKeyMetadata(): ?ForeignKeyMetadata
     {
         return $this->foreignKeyMetadata;
     }
@@ -77,7 +78,23 @@ class ColumnMetadata
 
     public function getDefaultValue()
     {
-        return $this->defaultValue;
+        $value = $this->defaultValue;
+        if (is_bool($value)) {
+            return intval($value);
+        }
+        return $value;
+    }
+
+    public function getDefaultValuePrintable()
+    {
+        $value = $this->defaultValue;
+        if (is_bool($value)) {
+            return $value ? '1' : '0';
+        }
+        if (is_string($value)) {
+            return "'$value'";
+        }
+        return $value;
     }
 
     public function getComment(): ?string
@@ -90,25 +107,38 @@ class ColumnMetadata
         return $this->attributes;
     }
 
-    public static function fromColumn(Column $column, string $sqlType): self
+    public static function fromColumn(
+        Column $column,
+        string $sqlType,
+        ?string $defaultFirstArgument = null,
+        ?string $defaultSecondArgument = null
+    ): self
     {
-        $foreignKeyMetadata = [];
+        $foreignKeyMetadata = null;
         if ($column instanceof JoinColumn) {
             $targetEntity = $column->getTargetEntity();
             if (is_subclass_of($targetEntity, EntityInterface::class)) {
-                $foreignKeyMetadata = [
-                    'referencedTable' => EntityMapper::getTable($targetEntity),
-                    'referencedColumn' => $column->getReferencedColumnName(),
-                ];
+                $tableName = EntityMapper::getTable($targetEntity);
+                $foreignKeyMetadata = ForeignKeyMetadata::fromArray([
+                    'name' => null,
+                    'columns' => [$column->getName()],
+                    'referenceTable' => $tableName,
+                    'referenceColumns' => [$column->getReferencedColumnName()],
+                    'onDelete' => $column->getOnDelete(),
+                    'onUpdate' => $column->getOnUpdate(),
+                ]);
             }
         }
-
         $arguments = [];
         if ($column->getFirstArgument()) {
             $arguments[] = $column->getFirstArgument();
+        }elseif ($defaultFirstArgument) {
+            $arguments[] = $defaultFirstArgument;
         }
         if ($column->getSecondArgument()) {
             $arguments[] = $column->getSecondArgument();
+        }elseif ($defaultSecondArgument) {
+            $arguments[] = $defaultSecondArgument;
         }
 
         $defaultValue = $column->getDefaultValue();
@@ -119,9 +149,9 @@ class ColumnMetadata
             $column->getName(),
             $sqlType,
             $column instanceof PrimaryKeyColumn,
-            $foreignKeyMetadata,
             $column->isNullable(),
             $defaultValue,
+            $foreignKeyMetadata,
             null,
             $arguments
         );
@@ -133,11 +163,25 @@ class ColumnMetadata
             $data['name'],
             $data['type'],
             $data['primary'] ?? false,
-            $data['foreignKeyMetadata'] ?? false,
             $data['null'] ?? true,
-            $data['default'] ?? null,
-            $data['comment'] ?? null,
+        $data['default'] ?? null,
+            $data['foreignKeyMetadata'] ?? null,
+        $data['comment'] ?? null,
             $data['attributes'] ?? []
+        );
+    }
+
+    public function replaceForeignKey(ForeignKeyMetadata $foreignKey): self
+    {
+        return new self(
+            $this->getName(),
+            $this->getType(),
+            $this->isPrimary(),
+            $this->isNullable(),
+            $this->getDefaultValue(),
+            $foreignKey,
+            $this->getComment(),
+            $this->getAttributes()
         );
     }
 
@@ -145,12 +189,11 @@ class ColumnMetadata
     {
         return [
             'name' => $this->getName(),
-
             'type' => $this->getType(),
             'primary' => $this->isPrimary(),
-            'foreignKeyMetadata' => $this->getForeignKeyMetadata(),
             'null' => $this->isNullable(),
             'default' => $this->getDefaultValue(),
+            'foreignKeyMetadata' => $this->getForeignKeyMetadata() ? $this->getForeignKeyMetadata()->toArray() : null,
             'comment' => $this->getComment(),
             'attributes' => $this->getAttributes(),
         ];

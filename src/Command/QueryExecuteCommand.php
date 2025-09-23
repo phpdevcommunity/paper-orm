@@ -8,11 +8,12 @@ use PhpDevCommunity\Console\InputInterface;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
 use PhpDevCommunity\Console\OutputInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 
 class QueryExecuteCommand implements CommandInterface
 {
-    private EntityManager $entityManager;
-    public function __construct(EntityManager $entityManager)
+    private EntityManagerInterface $entityManager;
+    public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
     }

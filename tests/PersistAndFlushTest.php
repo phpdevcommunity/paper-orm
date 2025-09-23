@@ -12,41 +12,32 @@ use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
 
 class PersistAndFlushTest extends TestCase
 {
-    private EntityManager $em;
 
     protected function setUp(): void
     {
-        $this->em = new EntityManager([
-            'driver' => 'sqlite',
-            'user' => null,
-            'password' => null,
-            'memory' => true,
-            'debug' => true
-        ]);
-        $this->setUpDatabaseSchema();
-    }
 
-    protected function setUpDatabaseSchema(): void
-    {
-        DataBaseHelperTest::init($this->em);
     }
 
     protected function tearDown(): void
     {
-        $this->em->getConnection()->close();
     }
 
     protected function execute(): void
     {
-        $this->testInsert();
-        $this->testUpdate();
-        $this->testUpdateJoinColumn();
-        $this->testDelete();
+        foreach (DataBaseHelperTest::drivers() as  $params) {
+            $em = new EntityManager($params);
+            DataBaseHelperTest::init($em);
+            $this->testInsert($em);
+            $this->testUpdate($em);
+            $this->testUpdateJoinColumn($em);
+            $this->testDelete($em);
+            $em->getConnection()->close();
+        }
     }
 
 
 
-    private function testInsert(): void
+    private function testInsert(EntityManager $em): void
     {
         $user = new UserTest();
         $this->assertNull($user->getId());
@@ -55,15 +46,15 @@ class PersistAndFlushTest extends TestCase
         $user->setPassword('secret');
         $user->setEmail('Xq5qI@example.com');
         $user->setActive(true);
-        $this->em->persist($user);
-        $this->em->flush();
+        $em->persist($user);
+        $em->flush();
         $this->assertNotNull($user->getId());
-        $this->em->clear();
+        $em->clear();
     }
 
-    private function testUpdate(): void
+    private function testUpdate(EntityManager $em): void
     {
-        $userRepository = $this->em->getRepository(UserTest::class);
+        $userRepository = $em->getRepository(UserTest::class);
         $user = $userRepository->findBy()->first()->orderBy('id')->toObject();
         $this->assertInstanceOf(ProxyInterface::class, $user);
         $this->assertInstanceOf(UserTest::class, $user);
@@ -74,10 +65,10 @@ class PersistAndFlushTest extends TestCase
         $user->setLastname('TOTO');
         $this->assertStrictEquals(2, count($user->__getPropertiesModified()));
 
-        $this->em->persist($user);
-        $this->em->flush();
+        $em->persist($user);
+        $em->flush();
         $user = null;
-        $this->em->clear();
+        $em->clear();
 
         $user = $userRepository->findBy()->first()->orderBy('id')->toObject();
         $this->assertInstanceOf(ProxyInterface::class, $user);
@@ -91,10 +82,10 @@ class PersistAndFlushTest extends TestCase
     }
 
 
-    private function testUpdateJoinColumn()
+    private function testUpdateJoinColumn(EntityManager $em)
     {
-        $userRepository = $this->em->getRepository(UserTest::class);
-        $postRepository = $this->em->getRepository(PostTest::class);
+        $userRepository = $em->getRepository(UserTest::class);
+        $postRepository = $em->getRepository(PostTest::class);
         $post = $postRepository->findBy()->first()
             ->where(Expr::isNotNull('user'))
             ->with(UserTest::class)
@@ -113,8 +104,8 @@ class PersistAndFlushTest extends TestCase
             $this->assertInstanceOf(PostTest::class, $postItem);
         }
         $post->setUser($user2);
-        $this->em->persist($post);
-        $this->em->flush();
+        $em->persist($post);
+        $em->flush();
         $user2 = $userRepository->find(2)
             ->with(PostTest::class)
             ->toObject();
@@ -124,43 +115,30 @@ class PersistAndFlushTest extends TestCase
         $this->assertStrictEquals(1, count($user1->getPosts()->toArray()));
     }
 
-    private function testDelete()
+    private function testDelete(EntityManager $em)
     {
-        $user = $this->em->getRepository(UserTest::class)->find(1)->toObject();
+        $user = $em->getRepository(UserTest::class)->find(1)->toObject();
         $this->assertInstanceOf(ProxyInterface::class, $user);
         $this->assertInstanceOf(UserTest::class, $user);
 
-        $posts = $user->getPosts();
-        $this->em->remove($user);
-        $this->em->flush();
+        $em->remove($user);
+        $em->flush();
         $this->assertFalse($user->__isInitialized());
-        /**
-         * @var PostTest|ProxyInterface $post
-         */
-        $post = $this->em->getRepository(PostTest::class)
-            ->findBy()
-            ->first()
-            ->where(Expr::equal('user', $user->getId()))
-            ->with(UserTest::class)
-            ->toObject();
-        $this->assertNull($post->getUser());
 
-        $user = $this->em->getRepository(UserTest::class)->find(1)->toObject();
+        $posts = $user->getPosts();
+        $ids = [];
+        foreach ($posts as $post) {
+            $ids[] = $post->getId();
+            $em->remove($post);
+            $em->flush();
+            $this->assertFalse($post->__isInitialized());
+        }
+        $user = $em->getRepository(UserTest::class)->find(1)->toObject();
         $this->assertNull($user);
 
-        $ids = [];
-        foreach ($posts as $postToDelete) {
-            $ids[] = $postToDelete->getId();
-            $this->em->remove($postToDelete);
-            $this->em->flush();
-            $this->assertFalse($postToDelete->__isInitialized());
-        }
-        $this->assertStrictEquals($posts->count(), count($ids));
         foreach ($ids as $idPost) {
-            $postToDelete = $this->em->getRepository(PostTest::class)->find($idPost)->toObject();
+            $postToDelete = $em->getRepository(PostTest::class)->find($idPost)->toObject();
             $this->assertNull($postToDelete);
         }
-
-        $this->assertFalse($post->__isInitialized());
     }
 }

@@ -5,6 +5,7 @@ namespace PhpDevCommunity\PaperORM\Repository;
 use LogicException;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Expression\Expr;
 use PhpDevCommunity\PaperORM\Hydrator\EntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
@@ -16,10 +17,9 @@ use PhpDevCommunity\PaperORM\Serializer\SerializerToDb;
 
 abstract class Repository
 {
+    private EntityManagerInterface $em;
 
-    private EntityManager $em;
-
-    public function __construct(EntityManager $em)
+    public function __construct(EntityManagerInterface $em)
     {
         $this->em = $em;
     }

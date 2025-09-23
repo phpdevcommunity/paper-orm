@@ -8,12 +8,13 @@ use PhpDevCommunity\Console\Option\CommandOption;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
 use PhpDevCommunity\Console\OutputInterface;
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
 
 class DatabaseCreateCommand implements CommandInterface
 {
-    private EntityManager $entityManager;
+    private EntityManagerInterface $entityManager;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(EntityManagerInterface $entityManager)
     {
         $this->entityManager = $entityManager;
     }

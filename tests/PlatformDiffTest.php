@@ -7,30 +7,36 @@ use PhpDevCommunity\PaperORM\Mapping\Column\BoolColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\UniTester\TestCase;
+use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
 
 class PlatformDiffTest extends TestCase
 {
-    private EntityManager $em;
+
 
     protected function setUp(): void
     {
-        $this->em = new EntityManager([
-            'driver' => 'sqlite',
-            'user' => null,
-            'password' => null,
-            'memory' => true,
-        ]);
 
     }
 
     protected function tearDown(): void
     {
-        $this->em->getConnection()->close();
     }
 
     protected function execute(): void
     {
-        $platform = $this->em->createDatabasePlatform();
+        foreach (DataBaseHelperTest::drivers() as $params) {
+            $em = new EntityManager($params);
+            $this->executeTest($em);
+            $em->getConnection()->close();
+        }
+    }
+
+    private function executeTest(EntityManager  $em)
+    {
+        $platform = $em->createDatabasePlatform();
+        $platform->createDatabaseIfNotExists();
+        $platform->dropDatabase();
+        $platform->createDatabaseIfNotExists();
         $columns = [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -68,5 +74,6 @@ class PlatformDiffTest extends TestCase
 
         $diff = $platform->diff('user2', $columns, [] );
         $this->assertTrue(count($diff->getColumnsToAdd()) == 6);
+
     }
 }

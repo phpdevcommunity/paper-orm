@@ -29,7 +29,7 @@ class PostTest implements EntityInterface
     #[DateTimeColumn(name: 'created_at')]
     private ?DateTime $createdAt = null;
 
-    #[JoinColumn(name: 'user_id', referencedColumnName: 'id', targetEntity:  UserTest::class)]
+    #[JoinColumn(name: 'user_id', targetEntity:  UserTest::class, nullable: true, unique: false, onDelete: JoinColumn::SET_NULL)]
     private ?UserTest $user = null;
 
     #[OneToMany(targetEntity: TagTest::class, mappedBy: 'post')]
@@ -63,7 +63,7 @@ class PostTest implements EntityInterface
             (new StringColumn())->bindProperty('title'),
             (new StringColumn())->bindProperty('content'),
             (new DateTimeColumn( 'created_at'))->bindProperty('createdAt'),
-            (new JoinColumn('user_id', 'id', UserTest::class))->bindProperty('user'),
+            (new JoinColumn('user_id', UserTest::class, 'id', true, false, JoinColumn::SET_NULL))->bindProperty('user'),
             (new OneToMany( TagTest::class, 'post'))->bindProperty('tags'),
             (new OneToMany( CommentTest::class, 'post'))->bindProperty('comments'),
         ];

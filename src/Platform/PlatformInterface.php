@@ -3,6 +3,7 @@
 namespace PhpDevCommunity\PaperORM\Platform;
 
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
+use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\DatabaseSchemaDiffMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
@@ -83,9 +84,13 @@ interface PlatformInterface
     public function renameColumn(string $tableName, string $oldColumnName, string $newColumnName): int;
     public function createIndex(IndexMetadata $indexMetadata): int;
     public function dropIndex(IndexMetadata $indexMetadata): int;
+    public function createForeignKeyConstraint(string $tableName, ForeignKeyMetadata $foreignKey) :int;
+    public function dropForeignKeyConstraints(string $tableName, string $foreignKeyName): int;
     public function getColumnTypeMappings(): array;
+    public function convertForeignKeyRuleStringToCode(?string $rule): int;
     public function getMaxLength(): int;
     public function getPrefixIndexName(): string;
+    public function getPrefixForeignKeyName(): string;
     public function diff(string $tableName, array $columns, array $indexes): DatabaseSchemaDiffMetadata;
     public function getSchema(): SchemaInterface;
 }

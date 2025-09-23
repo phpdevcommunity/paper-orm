@@ -33,12 +33,22 @@ require_once 'vendor/autoload.php';
 
 use PhpDevCommunity\PaperORM\EntityManager;
 
-// Basic configuration (MySQL, SQLite)  
+// Basic configuration SQLite
 $entityManager = new EntityManager([
             'driver' => 'sqlite',
             'user' => null,
             'password' => null,
             'memory' => true,
+]);
+// Basic configuration MySQL/Mariadb
+$entityManager = new EntityManager([
+            'driver' => 'mariadb',
+            'host' => '127.0.0.1',
+            'port' => 3306,
+            'dbname' => 'paper_orm_test',
+            'user' => 'root',
+            'password' => 'root',
+            'charset' => 'utf8mb4',
 ]);
 ```
 
@@ -247,12 +257,22 @@ require_once 'vendor/autoload.php';
 
 use PhpDevCommunity\PaperORM\EntityManager;
 
-// Configuration de base (MySQL, SQLite)  
+// Basic configuration SQLite
 $entityManager = new EntityManager([
             'driver' => 'sqlite',
             'user' => null,
             'password' => null,
             'memory' => true,
+]);
+// Basic configuration MySQL/Mariadb
+$entityManager = new EntityManager([
+            'driver' => 'mariadb',
+            'host' => '127.0.0.1',
+            'port' => 3306,
+            'dbname' => 'paper_orm_test',
+            'user' => 'root',
+            'password' => 'root',
+            'charset' => 'utf8mb4',
 ]);
 ```
 

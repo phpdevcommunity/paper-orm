@@ -3,8 +3,10 @@
 namespace PhpDevCommunity\PaperORM\Schema;
 
 use LogicException;
+use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
+use SQLite3;
 
 class SqliteSchema implements SchemaInterface
 {
@@ -68,12 +70,12 @@ class SqliteSchema implements SchemaInterface
                 $line .= ' NOT NULL';
             }
             if ($columnMetadata->getDefaultValue() !== null) {
-                $line .= sprintf(' DEFAULT %s', $columnMetadata->getDefaultValue());
+                $line .= sprintf(' DEFAULT %s', $columnMetadata->getDefaultValuePrintable());
             }
             $lines[] = $line;
 
             if (!empty($columnMetadata->getForeignKeyMetadata())) {
-                $foreignKeys[] = $columnMetadata;
+                $foreignKeys[] = $columnMetadata->getForeignKeyMetadata();
             }
         }
 
@@ -88,10 +90,10 @@ class SqliteSchema implements SchemaInterface
 
         $indexesSql = [];
         foreach ($options['indexes'] as $index) {
-            $createTable .= $this->createIndex($index);
+            $indexesSql[] = $this->createIndex($index);
         }
 
-        return $createTable.';'.implode(';', $indexesSql);
+        return $createTable . ';' . implode(';', $indexesSql);
     }
 
     public function createTableIfNotExists(string $tableName, array $columns, array $options = []): string
@@ -100,7 +102,12 @@ class SqliteSchema implements SchemaInterface
         return str_replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS', $createTable);
     }
 
-    public function createForeignKeyConstraints(string $tableName, ColumnMetadata $columnMetadata): string
+    public function createForeignKeyConstraint(string $tableName, ForeignKeyMetadata $foreignKey): string
+    {
+        throw new LogicException(sprintf("The method '%s' is not supported by the schema interface.", __METHOD__));
+    }
+
+    public function dropForeignKeyConstraints(string $tableName, string $foreignKeyName): string
     {
         throw new LogicException(sprintf("The method '%s' is not supported by the schema interface.", __METHOD__));
     }
@@ -117,14 +124,14 @@ class SqliteSchema implements SchemaInterface
 
     public function addColumn(string $tableName, ColumnMetadata $columnMetadata): string
     {
-        $sql =  sprintf('ALTER TABLE %s ADD %s %s', $tableName, $columnMetadata->getName(), $columnMetadata->getTypeWithAttributes());
+        $sql = sprintf('ALTER TABLE %s ADD %s %s', $tableName, $columnMetadata->getName(), $columnMetadata->getTypeWithAttributes());
 
         if (!$columnMetadata->isNullable()) {
             $sql .= ' NOT NULL';
         }
 
         if ($columnMetadata->getDefaultValue() !== null) {
-            $sql .= sprintf(' DEFAULT %s', $columnMetadata->getDefaultValue());
+            $sql .= sprintf(' DEFAULT %s', $columnMetadata->getDefaultValuePrintable());
         }
 
         return $sql;
@@ -133,7 +140,7 @@ class SqliteSchema implements SchemaInterface
     public function dropColumn(string $tableName, ColumnMetadata $columnMetadata): string
     {
         if (!$this->supportsDropColumn()) {
-            throw new \LogicException(sprintf("The method '%s' is not supported with SQLite versions older than 3.35.0.", __METHOD__));
+            throw new LogicException(sprintf("The method '%s' is not supported with SQLite versions older than 3.35.0.", __METHOD__));
         }
         return sprintf('ALTER TABLE %s DROP COLUMN %s', $tableName, $columnMetadata->getName());
     }
@@ -177,21 +184,55 @@ class SqliteSchema implements SchemaInterface
         return 'Y-m-d';
     }
 
-    private function foreignKeyConstraints(ColumnMetadata $columnMetadata): string
+    private function foreignKeyConstraints(ForeignKeyMetadata $foreignKey): string
     {
-        $foreignKeys = $columnMetadata->getForeignKeyMetadata();
-        if (empty($foreignKeys)) {
-            return '';
-        }
-        $referencedTable = $foreignKeys['referencedTable'];
-        $referencedColumn = $foreignKeys['referencedColumn'];
+        $referencedTable = $foreignKey->getReferenceTable();
+        $referencedColumns = $foreignKey->getReferenceColumns();
+        $sql = [];
+        $sql[] = sprintf('FOREIGN KEY (%s) REFERENCES %s (%s)', implode(', ', $foreignKey->getColumns()), $referencedTable, implode(', ', $referencedColumns));
 
-        return sprintf('FOREIGN KEY (%s) REFERENCES %s (%s)', $columnMetadata->getName(), $referencedTable, $referencedColumn);
+        switch ($foreignKey->getOnDelete()) {
+            case ForeignKeyMetadata::RESTRICT:
+                $sql[] = 'ON DELETE RESTRICT';
+                break;
+            case ForeignKeyMetadata::CASCADE:
+                $sql[] = 'ON DELETE CASCADE';
+                break;
+            case ForeignKeyMetadata::SET_DEFAULT:
+                $sql[] = 'ON DELETE SET DEFAULT';
+                break;
+            case ForeignKeyMetadata::SET_NULL:
+                $sql[] = 'ON DELETE SET NULL';
+                break;
+            case ForeignKeyMetadata::NO_ACTION:
+                $sql[] = 'ON DELETE NO ACTION';
+                break;
+        }
+
+        switch ($foreignKey->getOnUpdate()) {
+            case ForeignKeyMetadata::RESTRICT:
+                $sql[] = 'ON UPDATE RESTRICT';
+                break;
+            case ForeignKeyMetadata::CASCADE:
+                $sql[] = 'ON UPDATE CASCADE';
+                break;
+            case ForeignKeyMetadata::SET_DEFAULT:
+                $sql[] = 'ON UPDATE SET DEFAULT';
+                break;
+            case ForeignKeyMetadata::SET_NULL:
+                $sql[] = 'ON UPDATE SET NULL';
+                break;
+            case ForeignKeyMetadata::NO_ACTION:
+                $sql[] = 'ON UPDATE NO ACTION';
+                break;
+        }
+
+        return implode(' ', $sql);
     }
 
     public function supportsForeignKeyConstraints(): bool
     {
-       return true;
+        return true;
     }
 
     public function supportsIndexes(): bool
@@ -206,7 +247,7 @@ class SqliteSchema implements SchemaInterface
 
     public function supportsDropColumn(): bool
     {
-        return \SQLite3::version()['versionString'] >= '3.35.0';
+        return SQLite3::version()['versionString'] >= '3.35.0';
     }
 
     public function supportsModifyColumn(): bool
@@ -218,4 +259,11 @@ class SqliteSchema implements SchemaInterface
     {
         return false;
     }
+
+
+    public function supportsDropForeignKey(): bool
+    {
+        return false;
+    }
+
 }
