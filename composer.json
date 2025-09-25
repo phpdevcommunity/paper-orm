@@ -26,7 +26,8 @@
     "phpdevcommunity/relational-query": "^1.0",
     "phpdevcommunity/php-console": "^1.0",
     "phpdevcommunity/michel-package-starter": "^1.0",
-    "phpdevcommunity/php-filesystem": "^1.0"
+    "phpdevcommunity/php-filesystem": "^1.0",
+    "psr/log": "^1.1|^2.0|^3.0"
   },
   "require-dev": {
     "phpdevcommunity/unitester": "^0.1.0@alpha"

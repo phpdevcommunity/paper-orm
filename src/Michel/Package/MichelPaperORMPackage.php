@@ -30,6 +30,7 @@ class MichelPaperORMPackage implements PackageInterface
                     throw new LogicException('Database DSN not found, please set DATABASE_DSN in .env file or database.dsn in config');
                 }
                 $params = DSNParser::parse($container->get('database.dsn'));
+                $params['options']['debug'] = $container->get('michel.debug');
                 return new EntityManager($params);
             },
             PaperMigration::class => static function (ContainerInterface $container) {

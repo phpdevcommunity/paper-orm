@@ -57,8 +57,8 @@ final class MariaDBDriver implements DriverInterface
             $dsn .= 'unix_socket=' . $params['unix_socket'] . ';';
         }
 
-        if (isset($params['charset'])) {
-            $dsn .= 'charset=' . $params['charset'] . ';';
+        if (isset($params['options']['charset'])) {
+            $dsn .= sprintf('charset=%s;', $params['options']['charset']);
         }
 
         return $dsn;

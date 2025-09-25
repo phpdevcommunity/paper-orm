@@ -6,8 +6,13 @@ use Exception;
 use PhpDevCommunity\PaperORM\PaperConnection;
 use PhpDevCommunity\PaperORM\Platform\MariaDBPlatform;
 
-class DriverManager
+final class DriverManager
 {
+
+    private function __construct()
+    {
+    }
+
     private static array $driverSchemeAliases = [
         'sqlite' => SqliteDriver::class,
         'sqlite3' => SqliteDriver::class,
@@ -15,14 +20,16 @@ class DriverManager
         'mariadb' => MariaDBDriver::class
     ];
 
-    public static function getConnection(string $driver, array $params): PaperConnection
+    public static function createConnection(string $driver, array $params): PaperConnection
     {
         $driver = strtolower($driver);
 
         $drivers = self::$driverSchemeAliases;
-        if (isset($params['driver_class'])) {
-            $drivers[$driver] = $params['driver_class'];
+        if (isset($params['options']['driverClass'])) {
+            $drivers[$driver] = $params['options']['driverClass'];
+            unset($params['options']['driverClass']);
         }
+
         if (!isset($drivers[$driver])) {
             throw new Exception('Driver not found, please check your config : ' . $driver);
         }

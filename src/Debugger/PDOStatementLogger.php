@@ -27,21 +27,15 @@ class PDOStatementLogger extends \PDOStatement
 
     private function startQuery(string $query, array $params): void
     {
-        if ($this->getSqlDebugger() === null) {
-            return;
-        }
         $this->getSqlDebugger()->startQuery($query , $params);
     }
 
     private function stopQuery(): void
     {
-        if ($this->getSqlDebugger() === null) {
-            return;
-        }
         $this->getSqlDebugger()->stopQuery();
     }
 
-    public function getSqlDebugger(): ?SqlDebugger
+    public function getSqlDebugger(): SqlDebugger
     {
         return $this->debugger;
     }

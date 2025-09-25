@@ -42,5 +42,4 @@ class SqlDebuggerTest extends TestCase
         $this->assertEquals([], $queries[0]['params']);
         $this->assertNotNull($queries[0]['executionTime']);
     }
-
 }

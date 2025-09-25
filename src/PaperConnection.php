@@ -2,10 +2,13 @@
 
 namespace PhpDevCommunity\PaperORM;
 
+use Exception;
+use LogicException;
 use PDO;
 use PDOStatement;
 use PhpDevCommunity\PaperORM\Driver\DriverInterface;
 use PhpDevCommunity\PaperORM\Pdo\PaperPDO;
+use Psr\Log\LoggerInterface;
 
 final class PaperConnection
 {
@@ -16,12 +19,26 @@ final class PaperConnection
     private DriverInterface $driver;
 
     private bool $debug;
+    private ?LoggerInterface $logger = null;
 
     public function __construct(DriverInterface $driver, array $params)
     {
         $this->params = $params;
         $this->driver = $driver;
-        $this->debug = $params['debug'] ?? false;
+        $extra = $params['extra'] ?? [];
+        $this->debug = (bool)($extra['debug'] ?? false);
+
+        if (array_key_exists('logger', $extra)) {
+            $logger = $extra['logger'];
+            if (!$logger instanceof LoggerInterface) {
+                $given = is_object($logger) ? get_class($logger) : gettype($logger);
+                throw new LogicException(sprintf(
+                    'The logger must be an instance of Psr\Log\LoggerInterface, %s given.',
+                    $given
+                ));
+            }
+            $this->logger = $logger;
+        }
     }
 
 
@@ -35,7 +52,7 @@ final class PaperConnection
     {
         $db = $this->getPdo()->prepare($query);
         if ($db === false) {
-            throw new \Exception($this->getPdo()->errorInfo()[2]);
+            throw new Exception($this->getPdo()->errorInfo()[2]);
         }
         foreach ($params as $key => $value) {
             if (is_string($key)) {
@@ -80,9 +97,11 @@ final class PaperConnection
     public function connect(): bool
     {
         if (!$this->isConnected()) {
+            $params = $this->params;
+            unset($params['extra']);
             $this->pdo = $this->driver->connect($this->params);
             if ($this->debug) {
-                $this->pdo->enableSqlDebugger();
+                $this->pdo->enableSqlDebugger($this->logger);
             }
             return true;
         }

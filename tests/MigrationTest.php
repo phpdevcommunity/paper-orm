@@ -176,8 +176,6 @@ class MigrationTest extends TestCase
 
     private function testFailedMigration(PaperMigration  $paperMigration): void
     {
-        $em = $paperMigration->getEntityManager();
-
         $paperMigration->generateMigration();
 
         $this->expectException(RuntimeException::class, function () use ($paperMigration){

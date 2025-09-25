@@ -2,11 +2,20 @@
 
 namespace PhpDevCommunity\PaperORM\Debugger;
 
+use Psr\Log\LoggerInterface;
+
 class SqlDebugger
 {
+    private ?LoggerInterface $logger;
+
     private array $queries = [];
 
     public int $currentQuery = 0;
+
+    public function __construct(?LoggerInterface $logger = null)
+    {
+        $this->logger = $logger;
+    }
 
     public function startQuery(string $query, array $params): void
     {
@@ -27,6 +36,9 @@ class SqlDebugger
 
         $start = $this->queries[$this->currentQuery]['startTime'];
         $this->queries[$this->currentQuery]['executionTime'] = microtime(true) - $start;
+        if ($this->logger !== null) {
+            $this->logger->debug($this->queries[$this->currentQuery]);
+        }
     }
 
     public function getQueries(): array
@@ -38,4 +50,5 @@ class SqlDebugger
     {
         $this->queries = [];
     }
+
 }

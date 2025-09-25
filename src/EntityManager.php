@@ -5,8 +5,10 @@ namespace PhpDevCommunity\PaperORM;
 use PhpDevCommunity\PaperORM\Cache\EntityMemcachedCache;
 use PhpDevCommunity\PaperORM\Driver\DriverManager;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
+use PhpDevCommunity\PaperORM\Parser\DSNParser;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use PhpDevCommunity\PaperORM\Repository\Repository;
+use Psr\Log\LoggerInterface;
 
 class EntityManager implements EntityManagerInterface
 {
@@ -21,10 +23,23 @@ class EntityManager implements EntityManagerInterface
 
     private EntityMemcachedCache $cache;
 
+    public static function createFromDsn(string $dsn, bool $debug = false, LoggerInterface $logger = null): self
+    {
+        if (empty($dsn)) {
+            throw new \LogicException('Cannot create an EntityManager from an empty DSN.');
+        }
+        $params = DSNParser::parse($dsn);
+        $params['extra']['debug'] = $debug;
+        if ($logger !== null) {
+            $params['extra']['logger'] = $logger;
+        }
+        return new self($params);
+    }
+
     public function __construct(array $config = [])
     {
         $driver = $config['driver'];
-        $this->connection = DriverManager::getConnection($driver, $config);
+        $this->connection = DriverManager::createConnection($driver, $config);
         $this->unitOfWork = new UnitOfWork();
         $this->cache = new EntityMemcachedCache();
     }

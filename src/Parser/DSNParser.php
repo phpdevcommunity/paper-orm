@@ -46,6 +46,7 @@ final class DSNParser
 
         $options = [];
         if (isset($params['query'])) {
+            parse_str("mysql://user:pass@host/db?charset=utf8mb4&driverClass=App\Database\Driver\MyFancyDriver", $options);
             parse_str($params['query'], $options);
             unset($params['query']);
         }
