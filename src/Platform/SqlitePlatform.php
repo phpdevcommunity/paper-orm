@@ -299,4 +299,9 @@ class SqlitePlatform extends AbstractPlatform
     {
         return $this->schema;
     }
+
+    public function supportsTransactionalDDL(): bool
+    {
+       return true;
+    }
 }

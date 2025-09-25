@@ -8,7 +8,6 @@ use PhpDevCommunity\Console\InputInterface;
 use PhpDevCommunity\Console\Option\CommandOption;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
 use PhpDevCommunity\Console\OutputInterface;
-use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 
@@ -70,7 +69,6 @@ class ShowTablesCommand implements CommandInterface
             $io->table(['Tables'], array_map(function (string $table) {
                 return [$table];
             }, $tables));
-            $io->writeln('');
         }else {
             foreach ($tables as $table) {
                 $io->title(sprintf('Table : %s', $table));
@@ -85,7 +83,7 @@ class ShowTablesCommand implements CommandInterface
                     $io->table(array_keys($columns[0]), $columns);
                 }
             }
-            $io->writeln('');
         }
+        $io->writeln('');
     }
 }

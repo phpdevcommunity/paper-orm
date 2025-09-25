@@ -39,7 +39,6 @@ class DatabaseShowTablesCommandTest extends TestCase
 
     private function executeTest(EntityManager $em)
     {
-
         $platform = $em->createDatabasePlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
@@ -64,9 +63,30 @@ class DatabaseShowTablesCommandTest extends TestCase
             new ShowTablesCommand($em)
         ]);
 
-        $code = $runner->run(new CommandParser(['', 'paper:show:tables', '--columns']), new Output(function ($message) use(&$countMessages) {
+        $out = [];
+        $code = $runner->run(new CommandParser(['', 'paper:show:tables', '--columns']), new Output(function ($message) use(&$out) {
+            $out[] = $message;
         }));
         $this->assertEquals(0, $code);
+        $this->assertEquals(132, count($out));
 
+        $out = [];
+        $code = $runner->run(new CommandParser(['', 'paper:show:tables', 'post']), new Output(function ($message) use(&$out) {
+            $out[] = $message;
+        }));
+
+        $this->assertEquals(0, $code);
+        $this->assertEquals(16, count($out));
+
+        $out = [];
+        $code = $runner->run(new CommandParser(['', 'paper:show:tables', 'post', '--columns']), new Output(function ($message) use(&$out) {
+            $out[] = $message;
+        }));
+
+        $this->assertEquals(0, $code);
+        $this->assertEquals(62, count($out));
+
+
+        $platform->dropDatabase();
     }
 }

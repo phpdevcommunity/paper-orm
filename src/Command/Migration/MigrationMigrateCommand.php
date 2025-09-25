@@ -55,7 +55,6 @@ class MigrationMigrateCommand implements CommandInterface
             $error = $exception->getMessage();
         }
 
-
         foreach ($successList as $version) {
             $io->success('Migration successfully executed: version ' . $version);
         }

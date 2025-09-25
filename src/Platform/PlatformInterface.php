@@ -93,5 +93,6 @@ interface PlatformInterface
     public function getPrefixForeignKeyName(): string;
     public function diff(string $tableName, array $columns, array $indexes): DatabaseSchemaDiffMetadata;
     public function getSchema(): SchemaInterface;
+    public function supportsTransactionalDDL(): bool;
 }
 

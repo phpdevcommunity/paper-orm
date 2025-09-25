@@ -5,7 +5,6 @@ namespace PhpDevCommunity\PaperORM\Migration;
 use DateTime;
 use PDOException;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
-use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Generator\SchemaDiffGenerator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
@@ -15,6 +14,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\PaperConnection;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use RuntimeException;
+use Throwable;
 use function date;
 use function file_get_contents;
 use function file_put_contents;
@@ -56,7 +56,7 @@ final class PaperMigration
     /**
      * @return array<string>
      */
-    public function getVersionAlreadyMigrated() : array
+    public function getVersionAlreadyMigrated(): array
     {
         $version = $this->getConnection()->fetchAll('SELECT version FROM ' . $this->tableName);
         return array_column($version, 'version');
@@ -65,11 +65,11 @@ final class PaperMigration
     public function generateMigration(array $sqlUp = [], array $sqlDown = []): string
     {
         $i = 1;
-        $file = date('YmdHis').$i . '.sql';
+        $file = date('YmdHis') . $i . '.sql';
         $filename = $this->directory->getDir() . DIRECTORY_SEPARATOR . $file;
         while (file_exists($filename)) {
             $i++;
-            $filename = rtrim($filename, ($i - 1).'.sql') . $i . '.sql';
+            $filename = rtrim($filename, ($i - 1) . '.sql') . $i . '.sql';
         }
 
         $migrationContent = <<<'SQL'
@@ -120,17 +120,7 @@ SQL;
 
     public function diffEntities(array $entities): ?string
     {
-        $tables = [];
-        foreach ($entities as $entity) {
-            if (is_subclass_of($entity, EntityInterface::class)) {
-                $tableName = EntityMapper::getTable($entity);
-                $tables[$tableName] = [
-                    'columns' => ColumnMapper::getColumns($entity),
-                    'indexes' => [] // TODO IndexMapper::getIndexes($entity)
-                ];
-            }
-        }
-        return $this->diff($tables);
+        return $this->diff(self::transformEntitiesToTables($entities));
     }
 
     public function diff(array $tables): ?string
@@ -149,16 +139,19 @@ SQL;
     public function up(string $version): void
     {
         $migration = $this->directory->getMigration($version);
-        $pdo = $this->getConnection()->getPdo();
+        $txDdl = $this->platform->supportsTransactionalDDL();
+        $conn = $this->getConnection();
+        $pdo = $conn->getPdo();
         try {
-            $pdo->beginTransaction();
+            if ($txDdl && !$pdo->inTransaction()) {
+                $pdo->beginTransaction();
+            }
             $executedQueries = [];
             foreach (explode(';' . PHP_EOL, self::contentUp($migration)) as $query) {
-                if (str_starts_with($query = trim($query), '--')) {
+                $executed = $this->executeQuery($query);
+                if ($executed === false) {
                     continue;
                 }
-                $query = rtrim($query, ';') . ';';
-                $this->getConnection()->executeStatement($query);
                 $executedQueries[] = $query;
             }
             if ($executedQueries === []) {
@@ -166,29 +159,36 @@ SQL;
             }
 
             $createdAt = (new DateTime())->format($this->platform->getSchema()->getDateTimeFormatString());
-            $rows = $this->getConnection()->executeStatement('INSERT INTO ' . $this->tableName . ' (version, created_at) VALUES (:version, :created_at)', ['version' => $version, 'created_at' => $createdAt]);
+            $rows = $conn->executeStatement('INSERT INTO ' . $this->tableName . ' (version, created_at) VALUES (:version, :created_at)', ['version' => $version, 'created_at' => $createdAt]);
             if ($rows == 0) {
                 throw new RuntimeException("Failed to execute insert for version : " . $version);
             }
-            $pdo->commit();
-        } catch (\Throwable $e) {
-            $pdo->rollBack();
+
+            if ($pdo->inTransaction()) {
+                $pdo->commit();
+            }
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             throw new RuntimeException("Failed to migrate version $version : " . $e->getMessage());
         }
+
     }
 
     public function down(string $version): void
     {
         $migration = $this->directory->getMigration($version);
-        $pdo = $this->getConnection()->getPdo();
+        $conn = $this->getConnection();
+        $pdo = $conn->getPdo();
         $currentQuery = '';
         try {
             $pdo->beginTransaction();
             foreach (explode(';' . PHP_EOL, self::contentDown($migration)) as $query) {
                 $currentQuery = $query;
-                $this->getConnection()->executeStatement(rtrim($query, ';') . ';');
+                $this->executeQuery($query);
             }
-            $this->getConnection()->executeStatement('DELETE FROM ' . $this->tableName . ' WHERE version = :version', ['version' => $version]);
+            $conn->executeStatement('DELETE FROM ' . $this->tableName . ' WHERE version = :version', ['version' => $version]);
 
             $pdo->commit();
 
@@ -199,11 +199,21 @@ SQL;
 
     }
 
+    public function getSuccessList(): array
+    {
+        return $this->successList;
+    }
+
+    public function getEntityManager(): EntityManagerInterface
+    {
+        return $this->em;
+    }
+
     private function createVersion(): void
     {
         $this->platform->createTableIfNotExists($this->tableName, [
-            (new StringColumn( null, 50))->bindProperty('version'),
-            (new DateTimeColumn(null, 'created_at'))->bindProperty('created_at'),
+            new StringColumn('version', 50),
+            new DateTimeColumn('created_at', 'created_at'),
         ]);
     }
 
@@ -211,6 +221,17 @@ SQL;
     {
         return $this->em->getConnection();
 
+    }
+
+    private function executeQuery(string $query): bool
+    {
+        $query = trim($query);
+        if (str_starts_with($query = trim($query), '--')) {
+            return false;
+        }
+        $query = rtrim($query, ';') . ';';
+        $this->getConnection()->executeStatement($query);
+        return true;
     }
 
     private static function contentUp(string $migration): string
@@ -231,13 +252,19 @@ SQL;
         return [trim($parts[0]), (isset($parts[1]) ? trim($parts[1]) : '')];
     }
 
-    public function getSuccessList(): array
+    private static function transformEntitiesToTables(array $entities): array
     {
-        return $this->successList;
-    }
+        $tables = [];
+        foreach ($entities as $entity) {
+            if (is_subclass_of($entity, EntityInterface::class)) {
+                $tableName = EntityMapper::getTable($entity);
+                $tables[$tableName] = [
+                    'columns' => ColumnMapper::getColumns($entity),
+                    'indexes' => [] // TODO IndexMapper::getIndexes($entity)
+                ];
+            }
+        }
 
-    public function getEntityManager(): EntityManagerInterface
-    {
-        return $this->em;
+        return $tables;
     }
 }

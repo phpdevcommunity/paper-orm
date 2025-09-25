@@ -49,7 +49,7 @@ class MigrationDiffCommand implements CommandInterface
         $io = ConsoleOutput::create($output);
 
         $entitiesDir = $this->defaultEntitiesDir;
-        $output = $input->hasOption('output');
+        $printOutput = $input->getOptionValue('output');
         if ($input->hasOption('entities-dir')) {
             $entitiesDir = $input->getOptionValue('entities-dir');
         }
@@ -85,7 +85,7 @@ class MigrationDiffCommand implements CommandInterface
             return;
         }
 
-        if ($output === true) {
+        if ($printOutput === true) {
             $splFile = new \SplFileObject($file);
             $lines = [];
             while (!$splFile->eof()) {

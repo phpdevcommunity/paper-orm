@@ -291,6 +291,11 @@ class MariaDBPlatform extends AbstractPlatform
         return $this->schema;
     }
 
+    public function supportsTransactionalDDL(): bool
+    {
+        return false;
+    }
+
     public function executeStatement(string $sql): int
     {
         $result = 0;
