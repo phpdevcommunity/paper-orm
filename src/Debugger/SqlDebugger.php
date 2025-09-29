@@ -24,7 +24,7 @@ class SqlDebugger
             'query' => sprintf('[%s] %s', strtok($query, " "), $query),
             'params' => $params,
             'startTime' => microtime(true),
-            'executionTime' => 0
+            'executionTime' => 0,
         ];
     }
 
@@ -35,9 +35,9 @@ class SqlDebugger
         }
 
         $start = $this->queries[$this->currentQuery]['startTime'];
-        $this->queries[$this->currentQuery]['executionTime'] = microtime(true) - $start;
+        $this->queries[$this->currentQuery]['executionTime'] = round(microtime(true) - $start, 3);
         if ($this->logger !== null) {
-            $this->logger->debug($this->queries[$this->currentQuery]);
+            $this->logger->debug(json_encode($this->queries[$this->currentQuery]));
         }
     }
 

@@ -26,13 +26,13 @@ class DatabaseCreateCommand implements CommandInterface
 
     public function getDescription(): string
     {
-        return 'Create a new SQL database';
+        return 'Creates the database configured for PaperORM';
     }
 
     public function getOptions(): array
     {
         return [
-            new CommandOption('if-not-exists', null, 'Create the SQL database only if it does not already exist', true)
+            new CommandOption('if-not-exists', null, 'Only create the database if it does not already exist', true)
         ];
     }
 

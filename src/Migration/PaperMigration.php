@@ -179,21 +179,28 @@ SQL;
     public function down(string $version): void
     {
         $migration = $this->directory->getMigration($version);
+        $txDdl = $this->platform->supportsTransactionalDDL();
         $conn = $this->getConnection();
         $pdo = $conn->getPdo();
         $currentQuery = '';
         try {
-            $pdo->beginTransaction();
+            if ($txDdl && !$pdo->inTransaction()) {
+                $pdo->beginTransaction();
+            }
             foreach (explode(';' . PHP_EOL, self::contentDown($migration)) as $query) {
                 $currentQuery = $query;
                 $this->executeQuery($query);
             }
             $conn->executeStatement('DELETE FROM ' . $this->tableName . ' WHERE version = :version', ['version' => $version]);
 
-            $pdo->commit();
+            if ($pdo->inTransaction()) {
+                $pdo->commit();
+            }
 
         } catch (PDOException $e) {
-            $pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             throw new RuntimeException(sprintf('Failed to migrate version %s : %s -> %s', $version, $e->getMessage(), $currentQuery));
         }
 

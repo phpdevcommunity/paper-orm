@@ -63,6 +63,6 @@ class DatabaseDropCommand implements CommandInterface
 
     private function isEnabled(): bool
     {
-        return 'dev' === $this->env;
+        return 'dev' === $this->env || 'test' === $this->env;
     }
 }
