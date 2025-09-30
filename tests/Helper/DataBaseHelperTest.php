@@ -10,6 +10,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\TimestampColumn;
 use Test\PhpDevCommunity\PaperORM\Entity\PostTest;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
 
@@ -46,14 +47,14 @@ class DataBaseHelperTest
             new StringColumn('email'),
             new StringColumn('password'),
             new BoolColumn('is_active'),
-            new DateTimeColumn('created_at', true),
+            new TimestampColumn('created_at', true),
         ];
         $postColumns = [
             new PrimaryKeyColumn('id'),
             (new JoinColumn('user_id', UserTest::class, 'id', true, false, JoinColumn::SET_NULL)),
             new StringColumn('title'),
             new StringColumn('content'),
-            new DateTimeColumn('created_at', true),
+            new TimestampColumn('created_at', true),
         ];
 
         $tagColumns = [

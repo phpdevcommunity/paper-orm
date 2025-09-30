@@ -16,6 +16,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\JsonColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\TextColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\TimestampColumn;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
@@ -250,6 +251,10 @@ class MariaDBPlatform extends AbstractPlatform
             DateTimeColumn::class => [
                 'type' => 'DATETIME',
                 'args' => []
+            ],
+            TimestampColumn::class => [
+                'type' => 'DATETIME',
+                'args' => [],
             ],
             BoolColumn::class => [
                 'type' => 'TINYINT',

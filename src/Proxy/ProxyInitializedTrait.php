@@ -8,6 +8,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
+use PhpDevCommunity\PaperORM\Types\DateTimeType;
 
 trait ProxyInitializedTrait
 {
@@ -73,7 +74,7 @@ trait ProxyInitializedTrait
             $property = $reflection->getProperty($key);
             $property->setAccessible(true);
             $value = $property->getValue($this);
-            if ($column instanceof DateTimeColumn && $value instanceof DateTimeInterface) {
+            if ($column->getType() == DateTimeType::class && $value instanceof DateTimeInterface) {
                 $cleanedData[$key] = $value->getTimestamp();
             } elseif ($column instanceof DateColumn && $value instanceof DateTimeInterface) {
                 $cleanedData[$key] = $value;

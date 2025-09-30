@@ -16,6 +16,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\JsonColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\TextColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\TimestampColumn;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
@@ -274,6 +275,10 @@ class SqlitePlatform extends AbstractPlatform
                 'type' => 'VARCHAR',
                 'args' => [255],
             ],
+            TimestampColumn::class => [
+                'type' => 'DATETIME',
+                'args' => [],
+            ]
         ];
     }
 

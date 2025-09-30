@@ -65,9 +65,9 @@ class MigrationTest extends TestCase
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 $this->assertEquals($lines, array (
                     0 => '-- UP MIGRATION --',
-                    1 => 'CREATE TABLE user (id INTEGER PRIMARY KEY NOT NULL,firstname VARCHAR(255) NOT NULL,lastname VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,password VARCHAR(255) NOT NULL,is_active BOOLEAN NOT NULL,created_at DATETIME NOT NULL,last_post_id INTEGER,FOREIGN KEY (last_post_id) REFERENCES post (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
+                    1 => 'CREATE TABLE user (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,firstname VARCHAR(255) NOT NULL,lastname VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,password VARCHAR(255) NOT NULL,is_active BOOLEAN NOT NULL,created_at DATETIME,last_post_id INTEGER,FOREIGN KEY (last_post_id) REFERENCES post (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
                     2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON user (last_post_id);',
-                    3 => 'CREATE TABLE post (id INTEGER PRIMARY KEY NOT NULL,title VARCHAR(255) NOT NULL,content VARCHAR(255) NOT NULL,created_at DATETIME NOT NULL,user_id INTEGER,FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
+                    3 => 'CREATE TABLE post (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,title VARCHAR(255) NOT NULL,content VARCHAR(255) NOT NULL,created_at DATETIME NOT NULL,user_id INTEGER,FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
                     4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON post (user_id);',
                     5 => '-- DOWN MIGRATION --',
                     6 => 'DROP INDEX IX_8D93D6492D053F64;',
@@ -80,7 +80,7 @@ class MigrationTest extends TestCase
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 $this->assertEquals($lines, array (
                     0 => '-- UP MIGRATION --',
-                    1 => 'CREATE TABLE user (id INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,firstname VARCHAR(255) NOT NULL,lastname VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,password VARCHAR(255) NOT NULL,is_active TINYINT(1) NOT NULL,created_at DATETIME NOT NULL,last_post_id INT(11) DEFAULT NULL);',
+                    1 => 'CREATE TABLE user (id INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,firstname VARCHAR(255) NOT NULL,lastname VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,password VARCHAR(255) NOT NULL,is_active TINYINT(1) NOT NULL,created_at DATETIME DEFAULT NULL,last_post_id INT(11) DEFAULT NULL);',
                     2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON user (last_post_id);',
                     3 => 'CREATE TABLE post (id INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,title VARCHAR(255) NOT NULL,content VARCHAR(255) NOT NULL,created_at DATETIME NOT NULL,user_id INT(11) DEFAULT NULL);',
                     4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON post (user_id);',

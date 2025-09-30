@@ -2,12 +2,20 @@
 
 namespace PhpDevCommunity\PaperORM;
 
+use PhpDevCommunity\Listener\EventDispatcher;
+use PhpDevCommunity\Listener\ListenerProvider;
 use PhpDevCommunity\PaperORM\Cache\EntityMemcachedCache;
 use PhpDevCommunity\PaperORM\Driver\DriverManager;
+use PhpDevCommunity\PaperORM\Event\PreCreateEvent;
+use PhpDevCommunity\PaperORM\Event\PreUpdateEvent;
+use PhpDevCommunity\PaperORM\EventListener\CreatedAtListener;
+use PhpDevCommunity\PaperORM\EventListener\UpdatedAtListener;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Parser\DSNParser;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use PhpDevCommunity\PaperORM\Repository\Repository;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use Psr\EventDispatcher\ListenerProviderInterface;
 use Psr\Log\LoggerInterface;
 
 class EntityManager implements EntityManagerInterface
@@ -23,7 +31,10 @@ class EntityManager implements EntityManagerInterface
 
     private EntityMemcachedCache $cache;
 
-    public static function createFromDsn(string $dsn, bool $debug = false, LoggerInterface $logger = null): self
+    private ListenerProviderInterface $listener;
+    private EventDispatcherInterface $dispatcher;
+
+    public static function createFromDsn(string $dsn, bool $debug = false, LoggerInterface $logger = null, array $listeners = []): self
     {
         if (empty($dsn)) {
             throw new \LogicException('Cannot create an EntityManager from an empty DSN.');
@@ -33,15 +44,30 @@ class EntityManager implements EntityManagerInterface
         if ($logger !== null) {
             $params['extra']['logger'] = $logger;
         }
+        $params['extra']['listeners'] = $listeners;
         return new self($params);
     }
 
     public function __construct(array $config = [])
     {
-        $driver = $config['driver'];
-        $this->connection = DriverManager::createConnection($driver, $config);
+        if (!isset($config['driver'])) {
+            throw new \InvalidArgumentException('Missing "driver" in EntityManager configuration.');
+        }
+
+        $this->connection = DriverManager::createConnection($config['driver'], $config);
         $this->unitOfWork = new UnitOfWork();
         $this->cache = new EntityMemcachedCache();
+        $this->listener = (new ListenerProvider())
+            ->addListener(PreCreateEvent::class, new CreatedAtListener())
+            ->addListener(PreUpdateEvent::class, new UpdatedAtListener());
+
+        $listeners = $config['extra']['listeners'] ?? [];
+        foreach ((array) $listeners as $event => $listener) {
+            foreach ((array) $listener as $l) {
+                $this->addEventListener($event, $l);
+            }
+        }
+        $this->dispatcher = new EventDispatcher($this->listener);
     }
 
     public function persist(object $entity): void
@@ -83,14 +109,16 @@ class EntityManager implements EntityManagerInterface
         if ($repositoryName === null) {
             $repositoryName = 'ProxyRepository'.$entity;
         }
+
+        $dispatcher = $this->dispatcher;
         if (!isset($this->repositories[$repositoryName])) {
             if (!class_exists($repositoryName)) {
-                $repository = new class($entity, $this) extends Repository
+                $repository = new class($entity, $this, $dispatcher) extends Repository
                 {
                     private string $entityName;
-                    public function __construct($entityName, EntityManager $em)  {
+                    public function __construct($entityName, EntityManager $em, EventDispatcherInterface $dispatcher = null)  {
                         $this->entityName = $entityName;
-                        parent::__construct($em);
+                        parent::__construct($em, $dispatcher);
                     }
 
                     public function getEntityName(): string
@@ -99,7 +127,7 @@ class EntityManager implements EntityManagerInterface
                     }
                 };
             }else {
-                $repository = new $repositoryName($this);
+                $repository = new $repositoryName($this, $dispatcher);
             }
             $this->repositories[$repositoryName] = $repository;
         }
@@ -128,6 +156,12 @@ class EntityManager implements EntityManagerInterface
     public function clear(): void
     {
         $this->getCache()->clear();
+    }
+
+    public function addEventListener(string $eventType, callable $callable): self
+    {
+        $this->listener->addListener($eventType, $callable);
+        return $this;
     }
 
 }

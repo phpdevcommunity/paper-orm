@@ -64,7 +64,7 @@ class SqliteSchema implements SchemaInterface
         foreach ($columns as $columnMetadata) {
             $line = sprintf('%s %s', $columnMetadata->getName(), $columnMetadata->getTypeWithAttributes());
             if ($columnMetadata->isPrimary()) {
-                $line .= ' PRIMARY KEY';
+                $line .= ' PRIMARY KEY AUTOINCREMENT';
             }
             if (!$columnMetadata->isNullable()) {
                 $line .= ' NOT NULL';

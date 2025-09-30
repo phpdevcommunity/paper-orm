@@ -2,10 +2,13 @@
 
 namespace PhpDevCommunity\PaperORM\Repository;
 
+use InvalidArgumentException;
 use LogicException;
+use PhpDevCommunity\Listener\EventDispatcher;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
-use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
+use PhpDevCommunity\PaperORM\Event\PreCreateEvent;
+use PhpDevCommunity\PaperORM\Event\PreUpdateEvent;
 use PhpDevCommunity\PaperORM\Expression\Expr;
 use PhpDevCommunity\PaperORM\Hydrator\EntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
@@ -14,14 +17,17 @@ use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
 use PhpDevCommunity\PaperORM\Query\Fetcher;
 use PhpDevCommunity\PaperORM\Query\QueryBuilder;
 use PhpDevCommunity\PaperORM\Serializer\SerializerToDb;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 abstract class Repository
 {
     private EntityManagerInterface $em;
+    private ?EventDispatcherInterface $dispatcher;
 
-    public function __construct(EntityManagerInterface $em)
+    public function __construct(EntityManagerInterface $em, EventDispatcherInterface $dispatcher = null)
     {
         $this->em = $em;
+        $this->dispatcher = $dispatcher;
     }
 
     /**
@@ -53,6 +59,24 @@ abstract class Repository
     {
         $expressions = [];
         foreach ($arguments as $key => $value) {
+            if ($value instanceof EntityInterface) {
+                $value = $value->getPrimaryKeyValue();
+            } elseif (is_array($value)) {
+                $expressions[] = Expr::in($key, $value);
+                continue;
+            } elseif (is_null($value)) {
+                $expressions[] = Expr::isNull($key);
+                continue;
+            }
+            elseif (is_string($value) && strtoupper($value) === "!NULL") {
+                $expressions[] = Expr::isNotNull($key);
+                continue;
+            }
+            elseif (!is_scalar($value)) {
+                throw new InvalidArgumentException(
+                    sprintf('Argument "%s" must be scalar, array, null or EntityInterface, %s given', $key, gettype($value))
+                );
+            }
             $expressions[] = Expr::equal($key, $value);
         }
         return (new Fetcher($this->qb(), true))->where(...$expressions);
@@ -70,6 +94,9 @@ abstract class Repository
             throw new LogicException(static::class . sprintf(' Cannot insert an entity %s with a primary key ', get_class($entityToInsert)));
         }
 
+        if ($this->dispatcher && $entityToInsert instanceof EntityInterface) {
+            $this->dispatcher->dispatch(new PreCreateEvent($entityToInsert));
+        }
         $qb = \PhpDevCommunity\Sql\QueryBuilder::insert($this->getTableName());
 
         $values = [];
@@ -101,6 +128,9 @@ abstract class Repository
             return 0;
         }
 
+        if ($this->dispatcher && $entityToUpdate instanceof EntityInterface) {
+            $this->dispatcher->dispatch(new PreUpdateEvent($entityToUpdate));
+        }
         $qb = \PhpDevCommunity\Sql\QueryBuilder::update($this->getTableName())
             ->where(
                 sprintf('`%s` = %s',
@@ -140,7 +170,7 @@ abstract class Repository
                 )
             );
 
-        $rows =  $this->em->getConnection()->executeStatement($qb);
+        $rows = $this->em->getConnection()->executeStatement($qb);
         if ($rows > 0) {
             $entityToDelete->__destroy();
         }

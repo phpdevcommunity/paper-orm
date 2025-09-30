@@ -21,7 +21,7 @@ PaperORM is available via **Composer** and installs in seconds.
 
 ### 📦 Via Composer (recommended)
 ```bash
-composer require phpdevcommunity/paper-orm:1.0.6-alpha
+composer require phpdevcommunity/paper-orm:1.0.7-alpha
 ```  
 
 ### 🔧 Minimal Configuration

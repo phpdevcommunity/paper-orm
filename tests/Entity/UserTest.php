@@ -2,6 +2,7 @@
 
 namespace Test\PhpDevCommunity\PaperORM\Entity;
 
+use Cassandra\Time;
 use PhpDevCommunity\PaperORM\Collection\ObjectStorage;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Mapping\Column\BoolColumn;
@@ -9,6 +10,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\TimestampColumn;
 use PhpDevCommunity\PaperORM\Mapping\Entity;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
 use Test\PhpDevCommunity\PaperORM\Repository\PostTestRepository;
@@ -34,8 +36,8 @@ class UserTest implements EntityInterface
     #[BoolColumn(name: 'is_active')]
     private bool $active = false;
 
-    #[DateTimeColumn(name: 'created_at')]
-    private ?\DateTime $createdAt = null;
+    #[TimestampColumn(name: 'created_at', onCreated: true)]
+    private ?\DateTimeInterface $createdAt = null;
 
     #[OneToMany(targetEntity: PostTest::class, mappedBy: 'user')]
     private ObjectStorage $posts;
@@ -45,7 +47,6 @@ class UserTest implements EntityInterface
     public function __construct()
     {
         $this->posts = new ObjectStorage();
-        $this->createdAt = new \DateTime();
     }
 
     static public function getTableName(): string
@@ -70,7 +71,7 @@ class UserTest implements EntityInterface
             (new StringColumn())->bindProperty('email'),
             (new StringColumn())->bindProperty('password'),
             (new BoolColumn( 'is_active'))->bindProperty('active'),
-            (new DateTimeColumn( 'created_at'))->bindProperty('createdAt'),
+            (new TimestampColumn( 'created_at', true))->bindProperty('createdAt'),
             (new OneToMany( PostTest::class,  'user'))->bindProperty('posts'),
             (new JoinColumn( 'last_post_id', PostTest::class, 'id', true, true, JoinColumn::SET_NULL))->bindProperty('lastPost'),
         ];
@@ -147,12 +148,12 @@ class UserTest implements EntityInterface
         return $this;
     }
 
-    public function getCreatedAt(): ?\DateTime
+    public function getCreatedAt(): ?\DateTimeInterface
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?\DateTime $createdAt): UserTest
+    public function setCreatedAt(?\DateTimeInterface $createdAt): UserTest
     {
         $this->createdAt = $createdAt;
         return $this;

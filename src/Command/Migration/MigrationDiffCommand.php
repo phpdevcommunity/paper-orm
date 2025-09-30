@@ -8,6 +8,7 @@ use PhpDevCommunity\Console\Option\CommandOption;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
 use PhpDevCommunity\Console\OutputInterface;
 use PhpDevCommunity\FileSystem\Tools\FileExplorer;
+use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
 
 class MigrationDiffCommand implements CommandInterface
@@ -70,8 +71,8 @@ class MigrationDiffCommand implements CommandInterface
         $files = $explorer->searchByExtension('php', true);
         $entities = [];
         foreach ($files as $file) {
-            $entityClass = self::getFullClassName($file['path']);
-            if ($entityClass !== null) {
+            $entityClass = self::extractNamespaceAndClass($file['path']);
+            if ($entityClass !== null && class_exists($entityClass) && is_subclass_of($entityClass, EntityInterface::class)) {
                 $entities[$file['path']] = $entityClass;
             }
         }
@@ -98,31 +99,52 @@ class MigrationDiffCommand implements CommandInterface
         $io->success('Migration file successfully generated: ' . $file);
     }
 
-    private static function getFullClassName($file): ?string
+    private static function extractNamespaceAndClass(string $filePath): ?string
     {
-        $content = file_get_contents($file);
-        $tokens = token_get_all($content);
-        $namespace = $className = '';
+        if (!file_exists($filePath)) {
+            throw new \InvalidArgumentException('File not found: ' . $filePath);
+        }
 
-        foreach ($tokens as $i => $token) {
-            if ($token[0] === T_NAMESPACE) {
-                for ($j = $i + 1; isset($tokens[$j]); $j++) {
-                    if ($tokens[$j] === ';') break;
-                    if (is_array($tokens[$j]) && in_array($tokens[$j][0], [T_STRING, T_NS_SEPARATOR])) {
-                        $namespace .= $tokens[$j][1];
-                    }
+        $contents = file_get_contents($filePath);
+        $namespace = '';
+        $class = '';
+        $isExtractingNamespace = false;
+        $isExtractingClass = false;
+
+        foreach (token_get_all($contents) as $token) {
+            if (is_array($token) && $token[0] == T_NAMESPACE) {
+                $isExtractingNamespace = true;
+            }
+
+            if (is_array($token) && $token[0] == T_CLASS) {
+                $isExtractingClass = true;
+            }
+
+            if ($isExtractingNamespace) {
+                if (is_array($token) && in_array($token[0], [T_STRING, T_NS_SEPARATOR,  265 /* T_NAME_QUALIFIED For PHP 8*/])) {
+                    $namespace .= $token[1];
+                } else if ($token === ';') {
+                    $isExtractingNamespace = false;
                 }
             }
 
-            if ($token[0] === T_CLASS && isset($tokens[$i + 2][1])) {
-                $className = $tokens[$i + 2][1];
-                break;
+            if ($isExtractingClass) {
+                if (is_array($token) && $token[0] == T_STRING) {
+                    $class = $token[1];
+                    break;
+                }
             }
         }
-        if (empty($className)) {
+
+        if (empty($class)) {
             return null;
         }
 
-        return trim($namespace . '\\' . $className, '\\');
+        $fullClass = $namespace ? $namespace . '\\' . $class : $class;
+        if (class_exists($fullClass) && is_subclass_of($fullClass, EntityInterface::class)) {
+            return $fullClass;
+        }
+
+        return null;
     }
 }
