@@ -33,6 +33,7 @@ class EntityManager implements EntityManagerInterface
 
     private ListenerProviderInterface $listener;
     private EventDispatcherInterface $dispatcher;
+    private ?PlatformInterface $platform = null;
 
     public static function createFromDsn(string $dsn, bool $debug = false, LoggerInterface $logger = null, array $listeners = []): self
     {
@@ -136,10 +137,13 @@ class EntityManager implements EntityManagerInterface
     }
 
 
-    public function createDatabasePlatform(): PlatformInterface
+    public function getPlatform(): PlatformInterface
     {
-        $driver = $this->connection->getDriver();
-        return $driver->createDatabasePlatform($this->getConnection());
+        if ($this->platform === null) {
+            $driver = $this->connection->getDriver();
+            $this->platform = $driver->createDatabasePlatform($this->getConnection());
+        }
+        return $this->platform;
     }
 
 

@@ -214,4 +214,35 @@ interface SchemaInterface
 
     public function supportsDropForeignKey(): bool;
 
+    /**
+     * Quotes (escapes) a SQL identifier (e.g. table name, column name)
+     * according to the current database dialect rules.
+     *
+     * @param string $identifier
+     *   The raw SQL identifier (table name, column name, index, schema, …).
+     *   It must be passed without any quoting characters.
+     *
+     * @return string
+     *   The quoted identifier, wrapped with the correct quoting characters
+     *   for the active SQL dialect:
+     *     - MySQL/MariaDB: `identifier`
+     *     - PostgreSQL/SQLite: "identifier"
+     *     - SQL Server: [identifier]
+     *
+     *   Any quote characters inside the identifier itself will be escaped
+     *   according to the rules of the current dialect.
+     */
+    public function quote(string $identifier): string;
+
+    /**
+     * Returns the opening and closing symbols used to quote identifiers.
+     *
+     * @return array{0:string,1:string}
+     *   [openingSymbol, closingSymbol]
+     *   Examples:
+     *     - MySQL/MariaDB: ['`', '`']
+     *     - PostgreSQL/SQLite: ['`', '`']
+     *     - SQL Server: ['[', ']']
+     */
+    public function getIdentifierQuoteSymbols(): array;
 }

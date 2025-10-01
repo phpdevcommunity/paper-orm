@@ -309,4 +309,9 @@ class SqlitePlatform extends AbstractPlatform
     {
        return true;
     }
+
+    public function getConnection(): PaperConnection
+    {
+        return $this->connection;
+    }
 }

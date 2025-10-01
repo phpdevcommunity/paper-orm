@@ -42,7 +42,7 @@ class MigrationMigrateCommand implements CommandInterface
     {
         $io = ConsoleOutput::create($output);
 
-        $platform = $this->paperMigration->getEntityManager()->createDatabasePlatform();
+        $platform = $this->paperMigration->getEntityManager()->getPlatform();
 
         $io->title('Starting migration migrate on ' . $platform->getDatabaseName());
 

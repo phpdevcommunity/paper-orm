@@ -51,6 +51,8 @@ final class MariaDBDriver implements DriverInterface
 
         if (isset($params['dbname'])) {
             $dsn .= 'dbname=' . $params['dbname'] . ';';
+        }elseif (isset($params['path'])) {
+            $dsn .= 'dbname=' . $params['path'] . ';';
         }
 
         if (isset($params['unix_socket'])) {

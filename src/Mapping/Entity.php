@@ -10,7 +10,7 @@ final class Entity
 
     public function __construct( string $table, ?string $repository = null)
     {
-        $this->table = $table;
+        $this->table = trim($table, '`');
         $this->repositoryClass = $repository;
     }
 

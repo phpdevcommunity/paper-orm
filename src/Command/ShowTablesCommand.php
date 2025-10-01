@@ -55,7 +55,7 @@ class ShowTablesCommand implements CommandInterface
             $withColumns = $input->getOptionValue('columns');
         }
 
-        $platform = $this->entityManager->createDatabasePlatform();
+        $platform = $this->entityManager->getPlatform();
         $io->info('Database : ' . $platform->getDatabaseName());
         $tables = $platform->listTables();
         if ($tableName !== null) {

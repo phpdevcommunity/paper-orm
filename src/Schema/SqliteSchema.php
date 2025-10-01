@@ -6,10 +6,13 @@ use LogicException;
 use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
+use PhpDevCommunity\PaperORM\Schema\Traits\IdentifierQuotingTrait;
 use SQLite3;
 
 class SqliteSchema implements SchemaInterface
 {
+
+    use IdentifierQuotingTrait;
 
     public function showDatabases(): string
     {
@@ -62,7 +65,7 @@ class SqliteSchema implements SchemaInterface
         $lines = [];
         $foreignKeys = [];
         foreach ($columns as $columnMetadata) {
-            $line = sprintf('%s %s', $columnMetadata->getName(), $columnMetadata->getTypeWithAttributes());
+            $line = sprintf('%s %s', $this->quote($columnMetadata->getName()), $columnMetadata->getTypeWithAttributes());
             if ($columnMetadata->isPrimary()) {
                 $line .= ' PRIMARY KEY AUTOINCREMENT';
             }
@@ -86,7 +89,7 @@ class SqliteSchema implements SchemaInterface
 
         $linesString = implode(',', $lines);
 
-        $createTable = sprintf("CREATE TABLE $tableName (%s)", $linesString);
+        $createTable = sprintf("CREATE TABLE %s (%s)", $this->quote($tableName), $linesString);
 
         $indexesSql = [];
         foreach ($options['indexes'] as $index) {
@@ -114,17 +117,17 @@ class SqliteSchema implements SchemaInterface
 
     public function dropTable(string $tableName): string
     {
-        return sprintf('DROP TABLE %s', $tableName);
+        return sprintf('DROP TABLE %s', $this->quote($tableName));
     }
 
     public function renameTable(string $oldTableName, string $newTableName): string
     {
-        return sprintf('ALTER TABLE %s RENAME TO %s', $oldTableName, $newTableName);
+        return sprintf('ALTER TABLE %s RENAME TO %s', $this->quote($oldTableName), $this->quote($newTableName));
     }
 
     public function addColumn(string $tableName, ColumnMetadata $columnMetadata): string
     {
-        $sql = sprintf('ALTER TABLE %s ADD %s %s', $tableName, $columnMetadata->getName(), $columnMetadata->getTypeWithAttributes());
+        $sql = sprintf('ALTER TABLE %s ADD %s %s', $this->quote($tableName), $this->quote($columnMetadata->getName()), $columnMetadata->getTypeWithAttributes());
 
         if (!$columnMetadata->isNullable()) {
             $sql .= ' NOT NULL';
@@ -142,12 +145,12 @@ class SqliteSchema implements SchemaInterface
         if (!$this->supportsDropColumn()) {
             throw new LogicException(sprintf("The method '%s' is not supported with SQLite versions older than 3.35.0.", __METHOD__));
         }
-        return sprintf('ALTER TABLE %s DROP COLUMN %s', $tableName, $columnMetadata->getName());
+        return sprintf('ALTER TABLE %s DROP COLUMN %s', $this->quote($tableName), $this->quote($columnMetadata->getName()));
     }
 
     public function renameColumn(string $tableName, string $oldColumnName, string $newColumnName): string
     {
-        return sprintf('ALTER TABLE %s RENAME COLUMN %s to %s', $tableName, $oldColumnName, $newColumnName);
+        return sprintf('ALTER TABLE %s RENAME COLUMN %s to %s', $this->quote($tableName), $this->quote($oldColumnName), $this->quote($newColumnName));
     }
 
     public function modifyColumn(string $tableName, ColumnMetadata $columnMetadata): string
@@ -161,7 +164,12 @@ class SqliteSchema implements SchemaInterface
      */
     public function createIndex(IndexMetadata $indexMetadata): string
     {
-        $sql = sprintf('CREATE INDEX %s ON %s (%s)', $indexMetadata->getName(), $indexMetadata->getTableName(), implode(', ', $indexMetadata->getColumns()));
+        $sql = sprintf('CREATE INDEX %s ON %s (%s)',
+            $indexMetadata->getName(),
+            $this->quote($indexMetadata->getTableName()),
+            implode(', ', $this->quotes($indexMetadata->getColumns()))
+        );
+
         if ($indexMetadata->isUnique()) {
             $sql = str_replace('CREATE INDEX', 'CREATE UNIQUE INDEX', $sql);
         }
@@ -189,7 +197,11 @@ class SqliteSchema implements SchemaInterface
         $referencedTable = $foreignKey->getReferenceTable();
         $referencedColumns = $foreignKey->getReferenceColumns();
         $sql = [];
-        $sql[] = sprintf('FOREIGN KEY (%s) REFERENCES %s (%s)', implode(', ', $foreignKey->getColumns()), $referencedTable, implode(', ', $referencedColumns));
+        $sql[] = sprintf('FOREIGN KEY (%s) REFERENCES %s (%s)',
+            implode(', ', $this->quotes($foreignKey->getColumns())),
+            $this->quote($referencedTable),
+            implode(', ', $referencedColumns)
+        );
 
         switch ($foreignKey->getOnDelete()) {
             case ForeignKeyMetadata::RESTRICT:
@@ -266,4 +278,8 @@ class SqliteSchema implements SchemaInterface
         return false;
     }
 
+    public function getIdentifierQuoteSymbols(): array
+    {
+        return ['`', '`'];
+    }
 }

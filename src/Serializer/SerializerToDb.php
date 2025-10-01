@@ -41,7 +41,7 @@ final class SerializerToDb
             }
 
             $property->setAccessible(true);
-            $key = sprintf('`%s`', $column->getName());
+            $key = $column->getName();
             $value = $property->getValue($entity);
             if ($column instanceof JoinColumn) {
                 if (is_object($value) && ($value instanceof EntityInterface || method_exists($value, 'getPrimaryKeyValue'))) {

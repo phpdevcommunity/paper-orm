@@ -69,10 +69,10 @@ final class Fetcher
     public function toArray(): ?array
     {
         if ($this->collection) {
-            return $this->queryBuilder->getResult($this->arguments, false);
+            return $this->queryBuilder->getResult($this->arguments, QueryBuilder::HYDRATE_ARRAY);
         }
 
-        return $this->queryBuilder->getOneOrNullResult($this->arguments, false);
+        return $this->queryBuilder->getOneOrNullResult($this->arguments, QueryBuilder::HYDRATE_ARRAY);
     }
 
     public function toObject()
@@ -82,6 +82,15 @@ final class Fetcher
         }
 
         return $this->queryBuilder->getOneOrNullResult($this->arguments);
+    }
+
+    public function toReadOnlyObject()
+    {
+        if ($this->collection) {
+            return $this->queryBuilder->getResult($this->arguments, QueryBuilder::HYDRATE_OBJECT_READONLY);
+        }
+
+        return $this->queryBuilder->getOneOrNullResult($this->arguments,QueryBuilder::HYDRATE_OBJECT_READONLY);
     }
 
     private function joinRelation(string $type, string $expression): void

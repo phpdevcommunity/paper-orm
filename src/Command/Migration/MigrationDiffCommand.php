@@ -59,7 +59,7 @@ class MigrationDiffCommand implements CommandInterface
             throw new \LogicException('The --entities-dir option is required');
         }
 
-        $platform = $this->paperMigration->getEntityManager()->createDatabasePlatform();
+        $platform = $this->paperMigration->getEntityManager()->getPlatform();
 
         $io->title('Starting migration diff on ' . $platform->getDatabaseName());
         $io->list([

@@ -40,7 +40,7 @@ class PlatformTest extends TestCase
     {
         $em->getConnection()->close();
         $em->getConnection()->connect();
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();
@@ -70,12 +70,12 @@ class PlatformTest extends TestCase
     {
         $em->getConnection()->close();
         $em->getConnection()->connect();
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();
 
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -92,14 +92,14 @@ class PlatformTest extends TestCase
 
     public function testDropColumn(EntityManager $em)
     {
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         if ($platform->getSchema()->supportsDropColumn() === false) {
             return;
         }
 
         $em->getConnection()->close();
         $em->getConnection()->connect();
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();
@@ -122,12 +122,12 @@ class PlatformTest extends TestCase
     {
         $em->getConnection()->close();
         $em->getConnection()->connect();
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();
 
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),
@@ -146,12 +146,12 @@ class PlatformTest extends TestCase
     {
         $em->getConnection()->close();
         $em->getConnection()->connect();
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();
 
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createTable('user', [
             new PrimaryKeyColumn('id'),
             new StringColumn('firstname'),

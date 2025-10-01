@@ -265,7 +265,7 @@ class MariaDBPlatform extends AbstractPlatform
                 'args' => []
             ],
             JsonColumn::class => [
-                'type' => 'JSON',
+                'type' => 'LONGTEXT',
                 'args' => []
             ],
             StringColumn::class => [
@@ -301,13 +301,18 @@ class MariaDBPlatform extends AbstractPlatform
         return false;
     }
 
+    public function getConnection(): PaperConnection
+    {
+        return $this->connection;
+    }
+
     public function executeStatement(string $sql): int
     {
         $result = 0;
         foreach (explode(';', $sql) as $stmt) {
             $stmt = trim($stmt);
             if (!empty($stmt)) {
-                $result += $this->connection->executeStatement($stmt);
+                $result += $this->getConnection()->executeStatement($stmt);
             }
         }
         return $result;

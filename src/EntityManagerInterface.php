@@ -16,7 +16,7 @@ interface EntityManagerInterface
 
     public function getRepository(string $entity): Repository;
 
-    public function createDatabasePlatform(): PlatformInterface;
+    public function getPlatform(): PlatformInterface;
 
     public function getConnection(): PaperConnection;
     public function getCache(): EntityMemcachedCache;

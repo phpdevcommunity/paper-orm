@@ -123,11 +123,6 @@ class Expr
         return [$this->getAliasKey() => $this->getValue()];
     }
 
-    public static function or(string ...$expressions): string
-    {
-        return '(' . implode(') OR (', $expressions) . ')';
-    }
-
     public static function equal(string $key, $value): self
     {
         return new self($key, '=', $value);

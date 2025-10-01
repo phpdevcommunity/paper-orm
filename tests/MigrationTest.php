@@ -36,7 +36,7 @@ class MigrationTest extends TestCase
         foreach (DataBaseHelperTest::drivers() as $params) {
             $em = new EntityManager($params);
             $paperMigration = PaperMigration::create($em, 'mig_versions', $this->migrationDir);
-            $platform = $em->createDatabasePlatform();
+            $platform = $em->getPlatform();
             $platform->createDatabaseIfNotExists();
             $platform->dropDatabase();
             $platform->createDatabaseIfNotExists();
@@ -63,36 +63,36 @@ class MigrationTest extends TestCase
         switch (get_class($driver)) {
             case SqliteDriver::class:
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                $this->assertEquals($lines, array (
+                $this->assertEquals($lines, array(
                     0 => '-- UP MIGRATION --',
-                    1 => 'CREATE TABLE user (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,firstname VARCHAR(255) NOT NULL,lastname VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,password VARCHAR(255) NOT NULL,is_active BOOLEAN NOT NULL,created_at DATETIME,last_post_id INTEGER,FOREIGN KEY (last_post_id) REFERENCES post (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
-                    2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON user (last_post_id);',
-                    3 => 'CREATE TABLE post (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,title VARCHAR(255) NOT NULL,content VARCHAR(255) NOT NULL,created_at DATETIME NOT NULL,user_id INTEGER,FOREIGN KEY (user_id) REFERENCES user (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
-                    4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON post (user_id);',
+                    1 => 'CREATE TABLE `user` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,`firstname` VARCHAR(255) NOT NULL,`lastname` VARCHAR(255) NOT NULL,`email` VARCHAR(255) NOT NULL,`password` VARCHAR(255) NOT NULL,`is_active` BOOLEAN NOT NULL,`created_at` DATETIME,`last_post_id` INTEGER,FOREIGN KEY (`last_post_id`) REFERENCES `post` (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
+                    2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON `user` (`last_post_id`);',
+                    3 => 'CREATE TABLE `post` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,`title` VARCHAR(255) NOT NULL,`content` VARCHAR(255) NOT NULL,`created_at` DATETIME NOT NULL,`user_id` INTEGER,FOREIGN KEY (`user_id`) REFERENCES `user` (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
+                    4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON `post` (`user_id`);',
                     5 => '-- DOWN MIGRATION --',
                     6 => 'DROP INDEX IX_8D93D6492D053F64;',
-                    7 => 'DROP TABLE user;',
+                    7 => 'DROP TABLE `user`;',
                     8 => 'DROP INDEX IX_5A8A6C8DA76ED395;',
-                    9 => 'DROP TABLE post;',
+                    9 => 'DROP TABLE `post`;',
                 ));
                 break;
             case MariaDBDriver::class:
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                $this->assertEquals($lines, array (
+                $this->assertEquals($lines, array(
                     0 => '-- UP MIGRATION --',
-                    1 => 'CREATE TABLE user (id INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,firstname VARCHAR(255) NOT NULL,lastname VARCHAR(255) NOT NULL,email VARCHAR(255) NOT NULL,password VARCHAR(255) NOT NULL,is_active TINYINT(1) NOT NULL,created_at DATETIME DEFAULT NULL,last_post_id INT(11) DEFAULT NULL);',
-                    2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON user (last_post_id);',
-                    3 => 'CREATE TABLE post (id INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,title VARCHAR(255) NOT NULL,content VARCHAR(255) NOT NULL,created_at DATETIME NOT NULL,user_id INT(11) DEFAULT NULL);',
-                    4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON post (user_id);',
-                    5 => 'ALTER TABLE user ADD CONSTRAINT FK_8D93D6492D053F64 FOREIGN KEY (last_post_id) REFERENCES post(id) ON DELETE SET NULL ON UPDATE NO ACTION;',
-                    6 => 'ALTER TABLE post ADD CONSTRAINT FK_5A8A6C8DA76ED395 FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE SET NULL ON UPDATE NO ACTION;',
+                    1 => 'CREATE TABLE `user` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,`firstname` VARCHAR(255) NOT NULL,`lastname` VARCHAR(255) NOT NULL,`email` VARCHAR(255) NOT NULL,`password` VARCHAR(255) NOT NULL,`is_active` TINYINT(1) NOT NULL,`created_at` DATETIME DEFAULT NULL,`last_post_id` INT(11) DEFAULT NULL);',
+                    2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON `user` (`last_post_id`);',
+                    3 => 'CREATE TABLE `post` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,`title` VARCHAR(255) NOT NULL,`content` VARCHAR(255) NOT NULL,`created_at` DATETIME NOT NULL,`user_id` INT(11) DEFAULT NULL);',
+                    4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON `post` (`user_id`);',
+                    5 => 'ALTER TABLE `user` ADD CONSTRAINT FK_8D93D6492D053F64 FOREIGN KEY (`last_post_id`) REFERENCES `post`(`id`) ON DELETE SET NULL ON UPDATE NO ACTION;',
+                    6 => 'ALTER TABLE `post` ADD CONSTRAINT FK_5A8A6C8DA76ED395 FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE SET NULL ON UPDATE NO ACTION;',
                     7 => '-- DOWN MIGRATION --',
-                    8 => 'ALTER TABLE user DROP FOREIGN KEY FK_8D93D6492D053F64;',
-                    9 => 'ALTER TABLE post DROP FOREIGN KEY FK_5A8A6C8DA76ED395;',
-                    10 => 'DROP INDEX IX_8D93D6492D053F64 ON user;',
-                    11 => 'DROP TABLE user;',
-                    12 => 'DROP INDEX IX_5A8A6C8DA76ED395 ON post;',
-                    13 => 'DROP TABLE post;',
+                    8 => 'ALTER TABLE `user` DROP FOREIGN KEY FK_8D93D6492D053F64;',
+                    9 => 'ALTER TABLE `post` DROP FOREIGN KEY FK_5A8A6C8DA76ED395;',
+                    10 => 'DROP INDEX IX_8D93D6492D053F64 ON `user`;',
+                    11 => 'DROP TABLE `user`;',
+                    12 => 'DROP INDEX IX_5A8A6C8DA76ED395 ON `post`;',
+                    13 => 'DROP TABLE `post`;',
                 ));
                 break;
             default:
@@ -101,7 +101,7 @@ class MigrationTest extends TestCase
 
     }
 
-    private function testExecute(PaperMigration  $paperMigration): void
+    private function testExecute(PaperMigration $paperMigration): void
     {
         $paperMigration->migrate();
         $successList = $paperMigration->getSuccessList();
@@ -111,7 +111,7 @@ class MigrationTest extends TestCase
         $this->assertNull($migrationFile);
     }
 
-    private function testColumnModification(PaperMigration  $paperMigration): void
+    private function testColumnModification(PaperMigration $paperMigration): void
     {
         $em = $paperMigration->getEntityManager();
         $driver = $em->getConnection()->getDriver();
@@ -134,20 +134,12 @@ class MigrationTest extends TestCase
                 $schema = $driver->createDatabaseSchema();
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 if ($schema->supportsDropColumn()) {
-                    $this->assertEquals($lines, array (
-                        0 => '-- UP MIGRATION --',
-                        1 => 'ALTER TABLE user ADD childs INTEGER NOT NULL DEFAULT 0;',
-                        2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON user (email);',
-                        3 => '-- Modify column email is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. Consider creating a new column and migrating the data.;',
-                        4 => '-- DOWN MIGRATION --',
-                        5 => 'ALTER TABLE user DROP COLUMN childs;',
-                        6 => 'DROP INDEX IX_8D93D649E7927C74;',
-                    ));
+                    $this->assertEquals($lines, array());
                 } else {
-                    $this->assertEquals($lines, array (
+                    $this->assertEquals($lines, array(
                         0 => '-- UP MIGRATION --',
-                        1 => 'ALTER TABLE user ADD childs INTEGER NOT NULL DEFAULT 0;',
-                        2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON user (email);',
+                        1 => 'ALTER TABLE `user` ADD `childs` INTEGER NOT NULL DEFAULT 0;',
+                        2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON `user` (`email`);',
                         3 => '-- Modify column email is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. Consider creating a new column and migrating the data.;',
                         4 => '-- DOWN MIGRATION --',
                         5 => '-- Drop column childs is not supported with PhpDevCommunity\\PaperORM\\Schema\\SqliteSchema. You might need to manually drop the column.;',
@@ -159,13 +151,13 @@ class MigrationTest extends TestCase
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
                 $this->assertEquals($lines, array (
                     0 => '-- UP MIGRATION --',
-                    1 => 'ALTER TABLE user ADD COLUMN childs INT(11) NOT NULL DEFAULT 0;',
-                    2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON user (email);',
-                    3 => 'ALTER TABLE user MODIFY COLUMN email VARCHAR(255) DEFAULT NULL;',
+                    1 => 'ALTER TABLE `user` ADD COLUMN `childs` INT(11) NOT NULL DEFAULT 0;',
+                    2 => 'CREATE UNIQUE INDEX IX_8D93D649E7927C74 ON `user` (`email`);',
+                    3 => 'ALTER TABLE `user` MODIFY COLUMN `email` VARCHAR(255) DEFAULT NULL;',
                     4 => '-- DOWN MIGRATION --',
-                    5 => 'ALTER TABLE user DROP COLUMN childs;',
-                    6 => 'DROP INDEX IX_8D93D649E7927C74 ON user;',
-                    7 => 'ALTER TABLE user MODIFY COLUMN email VARCHAR(255) NOT NULL;',
+                    5 => 'ALTER TABLE `user` DROP COLUMN `childs`;',
+                    6 => 'DROP INDEX IX_8D93D649E7927C74 ON `user`;',
+                    7 => 'ALTER TABLE `user` MODIFY COLUMN `email` VARCHAR(255) NOT NULL;',
                 ));
                 break;
             default:
@@ -174,11 +166,11 @@ class MigrationTest extends TestCase
 
     }
 
-    private function testFailedMigration(PaperMigration  $paperMigration): void
+    private function testFailedMigration(PaperMigration $paperMigration): void
     {
         $paperMigration->generateMigration();
 
-        $this->expectException(RuntimeException::class, function () use ($paperMigration){
+        $this->expectException(RuntimeException::class, function () use ($paperMigration) {
             $paperMigration->migrate();
         });
         $successList = $paperMigration->getSuccessList();

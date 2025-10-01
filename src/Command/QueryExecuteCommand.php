@@ -47,7 +47,7 @@ class QueryExecuteCommand implements CommandInterface
         if ($query === null) {
             throw new \LogicException("SQL query is required");
         }
-        $io->title('Starting query on ' . $this->entityManager->createDatabasePlatform()->getDatabaseName());
+        $io->title('Starting query on ' . $this->entityManager->getPlatform()->getDatabaseName());
         
         $data = $this->entityManager->getConnection()->fetchAll($query);
         $io->listKeyValues([

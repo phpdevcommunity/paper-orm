@@ -3,6 +3,7 @@
 namespace Test\PhpDevCommunity\PaperORM;
 
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Entity\PostTest;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
@@ -25,6 +26,7 @@ class RepositoryTest extends TestCase
             $em = new EntityManager($params);
             DataBaseHelperTest::init($em);
             $this->testSelectWithoutJoin($em);
+            $this->testSelectWithoutProxy($em);
             $this->testSelectInnerJoin($em);
             $this->testSelectLeftJoin($em);
             $em->getConnection()->close();
@@ -73,6 +75,41 @@ class RepositoryTest extends TestCase
         $this->assertStrictEquals(5, count($users));
         foreach ($users as $user) {
             $this->assertInstanceOf(UserTest::class, $user);
+        }
+    }
+
+    public function testSelectWithoutProxy(EntityManager $em): void
+    {
+        $userRepository = $em->getRepository(UserTest::class);
+        $users = $userRepository->findBy()
+            ->with(PostTest::class)
+            ->orderBy('id', 'DESC')
+            ->toReadOnlyObject();
+
+
+        foreach ($users as $user) {
+            $this->assertInstanceOf(UserTest::class, $user);
+            $this->assertTrue(!$user instanceof ProxyInterface);
+            $this->assertTrue(!$user->getLastPost() instanceof ProxyInterface);
+            foreach ($user->getPosts() as $post) {
+                $this->assertTrue(!$post instanceof ProxyInterface);
+            }
+        }
+
+        $users = $userRepository->findBy()
+            ->with(PostTest::class)
+            ->orderBy('id', 'DESC')
+            ->toObject();
+
+        foreach ($users as $user) {
+            $this->assertInstanceOf(UserTest::class, $user);
+            $this->assertInstanceOf(ProxyInterface::class, $user);
+            if ($user->getLastPost()) {
+                $this->assertInstanceOf(ProxyInterface::class, $user->getLastPost());
+            }
+            foreach ($user->getPosts() as $post) {
+                $this->assertInstanceOf(ProxyInterface::class, $post);
+            }
         }
     }
 

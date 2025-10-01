@@ -21,7 +21,7 @@ final class DatabaseConnectionFactory
                 return new EntityManager([
                     'driver' => 'pdo_mysql',
                     'host' => 'localhost',
-                    'dbname' => 'test_db',
+                    'path' => 'test_db',
                     'user' => 'root',
                     'password' => '',
                 ]);

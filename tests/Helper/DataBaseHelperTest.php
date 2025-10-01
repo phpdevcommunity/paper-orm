@@ -67,7 +67,7 @@ class DataBaseHelperTest
             (new JoinColumn('post_id', PostTest::class, 'id', true, false, JoinColumn::SET_NULL)),
             new StringColumn('body'),
         ];
-        $platform = $entityManager->createDatabasePlatform();
+        $platform = $entityManager->getPlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();

@@ -48,7 +48,7 @@ final class PaperMigration
     private function __construct(EntityManagerInterface $em, string $tableName, string $directory)
     {
         $this->em = $em;
-        $this->platform = $em->createDatabasePlatform();
+        $this->platform = $em->getPlatform();
         $this->tableName = $tableName;
         $this->directory = new MigrationDirectory($directory);
     }

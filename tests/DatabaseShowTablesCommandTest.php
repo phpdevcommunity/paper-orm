@@ -39,7 +39,7 @@ class DatabaseShowTablesCommandTest extends TestCase
 
     private function executeTest(EntityManager $em)
     {
-        $platform = $em->createDatabasePlatform();
+        $platform = $em->getPlatform();
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();

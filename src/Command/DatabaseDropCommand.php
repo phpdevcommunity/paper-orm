@@ -56,7 +56,7 @@ class DatabaseDropCommand implements CommandInterface
             throw new LogicException('You must use the --force option to drop the database.');
         }
 
-        $platform = $this->entityManager->createDatabasePlatform();
+        $platform = $this->entityManager->getPlatform();
         $platform->dropDatabase();
         $io->success('The SQL database has been successfully dropped.');
     }

@@ -3,17 +3,18 @@
 namespace PhpDevCommunity\PaperORM\Schema;
 
 use LogicException;
-use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
-use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
+use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
+use PhpDevCommunity\PaperORM\Schema\Traits\IdentifierQuotingTrait;
 
 class MariaDBSchema implements SchemaInterface
 {
 
+    use IdentifierQuotingTrait;
     public function showDatabases(): string
     {
-        return  "SHOW DATABASES";
+        return "SHOW DATABASES";
     }
 
     public function showTables(): string
@@ -54,7 +55,7 @@ class MariaDBSchema implements SchemaInterface
 
     public function showTableIndexes(string $tableName): string
     {
-        return sprintf('SHOW INDEXES FROM %s', $tableName);
+        return sprintf('SHOW INDEXES FROM %s', $this->quote($tableName));
     }
 
     public function createDatabase(string $databaseName): string
@@ -64,7 +65,7 @@ class MariaDBSchema implements SchemaInterface
 
     public function createDatabaseIfNotExists(string $databaseName): string
     {
-        return  sprintf('CREATE DATABASE IF NOT EXISTS %s', $databaseName);
+        return sprintf('CREATE DATABASE IF NOT EXISTS %s', $databaseName);
     }
 
     public function dropDatabase(string $databaseName): string
@@ -82,16 +83,16 @@ class MariaDBSchema implements SchemaInterface
     {
         $lines = [];
         foreach ($columns as $columnMetadata) {
-            $line = sprintf('%s %s', $columnMetadata->getName(), $columnMetadata->getTypeWithAttributes());
+            $line = sprintf('%s %s', $this->quote($columnMetadata->getName()), $columnMetadata->getTypeWithAttributes());
             if ($columnMetadata->isPrimary()) {
                 $line .= ' AUTO_INCREMENT PRIMARY KEY NOT NULL';
-            }else {
+            } else {
                 if (!$columnMetadata->isNullable()) {
                     $line .= ' NOT NULL';
                 }
                 if ($columnMetadata->getDefaultValue() !== null) {
                     $line .= sprintf(' DEFAULT %s', $columnMetadata->getDefaultValuePrintable());
-                }elseif ($columnMetadata->isNullable()) {
+                } elseif ($columnMetadata->isNullable()) {
                     $line .= ' DEFAULT NULL';
                 }
             }
@@ -101,7 +102,7 @@ class MariaDBSchema implements SchemaInterface
 
 
         $linesString = implode(',', $lines);
-        $createTable = sprintf("CREATE TABLE $tableName (%s)", $linesString);
+        $createTable = sprintf("CREATE TABLE %s (%s)", $this->quote($tableName), $linesString);
 
         $indexesSql = [];
         $options['indexes'] = $options['indexes'] ?? [];
@@ -109,7 +110,7 @@ class MariaDBSchema implements SchemaInterface
             $indexesSql[] = $this->createIndex($index);
         }
 
-        return $createTable.';'.implode(';', $indexesSql);
+        return $createTable . ';' . implode(';', $indexesSql);
     }
 
     public function createTableIfNotExists(string $tableName, array $columns, array $options = []): string
@@ -127,11 +128,11 @@ class MariaDBSchema implements SchemaInterface
         }
 
         $sql[] = sprintf('ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s)',
-            $tableName,
+            $this->quote($tableName),
             $foreignKey->getName(),
-            implode(', ', $foreignKey->getColumns()),
-            $foreignKey->getReferenceTable(),
-            implode(', ', $foreignKey->getReferenceColumns())
+            implode(', ',  $this->quotes($foreignKey->getColumns())),
+            $this->quote($foreignKey->getReferenceTable()),
+            implode(', ',  $this->quotes($foreignKey->getReferenceColumns())),
         );
 
         switch ($foreignKey->getOnDelete()) {
@@ -164,34 +165,34 @@ class MariaDBSchema implements SchemaInterface
                 break;
         }
 
-        return implode(' ', $sql).';';
+        return implode(' ', $sql) . ';';
     }
 
-    public function dropForeignKeyConstraints( string $tableName, string $foreignKeyName): string
+    public function dropForeignKeyConstraints(string $tableName, string $foreignKeyName): string
     {
-        return sprintf('ALTER TABLE %s DROP FOREIGN KEY %s', $tableName, $foreignKeyName);
+        return sprintf('ALTER TABLE %s DROP FOREIGN KEY %s', $this->quote($tableName), $foreignKeyName);
     }
 
     public function dropTable(string $tableName): string
     {
-        return sprintf('DROP TABLE %s', $tableName);
+        return sprintf('DROP TABLE %s', $this->quote($tableName));
     }
 
     public function renameTable(string $oldTableName, string $newTableName): string
     {
-        return sprintf('ALTER TABLE %s RENAME TO %s', $oldTableName, $newTableName);
+        return sprintf('ALTER TABLE %s RENAME TO %s', $this->quote($oldTableName), $this->quote($newTableName));
     }
 
     public function addColumn(string $tableName, ColumnMetadata $columnMetadata): string
     {
-        $sql =  sprintf('ALTER TABLE %s ADD COLUMN %s %s', $tableName, $columnMetadata->getName(), $columnMetadata->getTypeWithAttributes());
+        $sql = sprintf('ALTER TABLE %s ADD COLUMN %s %s', $this->quote($tableName), $this->quote($columnMetadata->getName()), $columnMetadata->getTypeWithAttributes());
         if (!$columnMetadata->isNullable()) {
             $sql .= ' NOT NULL';
         }
 
         if ($columnMetadata->getDefaultValue() !== null) {
             $sql .= sprintf(' DEFAULT %s', $columnMetadata->getDefaultValuePrintable());
-        }elseif ($columnMetadata->isNullable()) {
+        } elseif ($columnMetadata->isNullable()) {
             $sql .= ' DEFAULT NULL';
         }
 
@@ -200,18 +201,18 @@ class MariaDBSchema implements SchemaInterface
 
     public function dropColumn(string $tableName, ColumnMetadata $columnMetadata): string
     {
-        return sprintf('ALTER TABLE %s DROP COLUMN %s', $tableName, $columnMetadata->getName());
+        return sprintf('ALTER TABLE %s DROP COLUMN %s', $this->quote($tableName), $this->quote($columnMetadata->getName()));
     }
 
     public function renameColumn(string $tableName, string $oldColumnName, string $newColumnName): string
     {
-        return sprintf('ALTER TABLE %s RENAME COLUMN %s to %s', $tableName, $oldColumnName, $newColumnName);
+        return sprintf('ALTER TABLE %s RENAME COLUMN %s to %s', $this->quote($tableName), $this->quote($oldColumnName), $this->quote($newColumnName));
     }
 
     public function modifyColumn(string $tableName, ColumnMetadata $columnMetadata): string
     {
         $sql = $this->addColumn($tableName, $columnMetadata);
-        return  str_replace('ADD COLUMN', 'MODIFY COLUMN', $sql);
+        return str_replace('ADD COLUMN', 'MODIFY COLUMN', $sql);
     }
 
     /**
@@ -221,17 +222,17 @@ class MariaDBSchema implements SchemaInterface
     public function createIndex(IndexMetadata $indexMetadata): string
     {
         $indexType = $indexMetadata->isUnique() ? 'CREATE UNIQUE INDEX' : 'CREATE INDEX';
-        return  sprintf('%s %s ON %s (%s)',
+        return sprintf('%s %s ON %s (%s)',
             $indexType,
             $indexMetadata->getName(),
-            $indexMetadata->getTableName(),
-            implode(', ', $indexMetadata->getColumns())
+            $this->quote($indexMetadata->getTableName()),
+            implode(', ', $this->quotes($indexMetadata->getColumns())),
         );
     }
 
     public function dropIndex(IndexMetadata $indexMetadata): string
     {
-        return sprintf('DROP INDEX %s ON %s;', $indexMetadata->getName(), $indexMetadata->getTableName());
+        return sprintf('DROP INDEX %s ON %s;', $indexMetadata->getName(), $this->quote($indexMetadata->getTableName()));
     }
 
 
@@ -245,10 +246,9 @@ class MariaDBSchema implements SchemaInterface
         return 'Y-m-d';
     }
 
-
     public function supportsForeignKeyConstraints(): bool
     {
-       return true;
+        return true;
     }
 
     public function supportsIndexes(): bool
@@ -280,4 +280,10 @@ class MariaDBSchema implements SchemaInterface
     {
         return true;
     }
+
+    public function getIdentifierQuoteSymbols(): array
+    {
+        return ['`', '`'];
+    }
+
 }

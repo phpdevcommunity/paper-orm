@@ -3,31 +3,29 @@
 namespace PhpDevCommunity\PaperORM\Repository;
 
 use InvalidArgumentException;
-use LogicException;
-use PhpDevCommunity\Listener\EventDispatcher;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
-use PhpDevCommunity\PaperORM\Event\PreCreateEvent;
-use PhpDevCommunity\PaperORM\Event\PreUpdateEvent;
 use PhpDevCommunity\PaperORM\Expression\Expr;
 use PhpDevCommunity\PaperORM\Hydrator\EntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
-use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
+use PhpDevCommunity\PaperORM\Persistence\EntityPersistence;
+use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use PhpDevCommunity\PaperORM\Query\Fetcher;
 use PhpDevCommunity\PaperORM\Query\QueryBuilder;
-use PhpDevCommunity\PaperORM\Serializer\SerializerToDb;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 abstract class Repository
 {
     private EntityManagerInterface $em;
-    private ?EventDispatcherInterface $dispatcher;
+    private PlatformInterface $platform;
+    private EntityPersistence $ep;
 
     public function __construct(EntityManagerInterface $em, EventDispatcherInterface $dispatcher = null)
     {
         $this->em = $em;
-        $this->dispatcher = $dispatcher;
+        $this->platform = $em->getPlatform();
+        $this->ep = new EntityPersistence($this->platform, $dispatcher);
     }
 
     /**
@@ -48,12 +46,6 @@ abstract class Repository
      */
     abstract public function getEntityName(): string;
 
-    public function find(int $pk): Fetcher
-    {
-        $entityName = $this->getEntityName();
-        $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entityName);
-        return $this->findBy()->where(Expr::equal($primaryKeyColumn, $pk))->first();
-    }
 
     public function findBy(array $arguments = []): Fetcher
     {
@@ -87,111 +79,31 @@ abstract class Repository
         return $this->findBy($arguments)->first();
     }
 
+    public function find(int $pk): Fetcher
+    {
+        $entityName = $this->getEntityName();
+        $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entityName);
+        return $this->findOneBy([$primaryKeyColumn => $pk]);
+    }
+
     public function insert(object $entityToInsert): int
     {
-        $this->checkEntity($entityToInsert);
-        if ($entityToInsert->getPrimaryKeyValue() !== null) {
-            throw new LogicException(static::class . sprintf(' Cannot insert an entity %s with a primary key ', get_class($entityToInsert)));
-        }
-
-        if ($this->dispatcher && $entityToInsert instanceof EntityInterface) {
-            $this->dispatcher->dispatch(new PreCreateEvent($entityToInsert));
-        }
-        $qb = \PhpDevCommunity\Sql\QueryBuilder::insert($this->getTableName());
-
-        $values = [];
-        foreach ((new SerializerToDb($entityToInsert))->serialize() as $key => $value) {
-            $keyWithoutBackticks = str_replace("`", "", $key);
-            $qb->setValue($key, ":$keyWithoutBackticks");
-            $values[$keyWithoutBackticks] = $value;
-        }
-        $rows = $this->em->getConnection()->executeStatement($qb, $values);
-        $lastInsertId = $this->em->getConnection()->getPdo()->lastInsertId();
-        if ($rows > 0) {
-            $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entityToInsert);
-            (new EntityHydrator($this->em->getCache()))->hydrate($entityToInsert, [$primaryKeyColumn => $lastInsertId]);
-        }
-        return $rows;
+        return $this->ep->insert($entityToInsert);
     }
 
     public function update(object $entityToUpdate): int
     {
-        $this->checkEntity($entityToUpdate, true);
-        if ($entityToUpdate->getPrimaryKeyValue() === null) {
-            throw new LogicException(static::class . sprintf(' Cannot update an entity %s without a primary key ', get_class($entityToUpdate)));
-        }
-
-        /**
-         * @var ProxyInterface|EntityInterface $entityToUpdate
-         */
-        if (!$entityToUpdate->__wasModified()) {
-            return 0;
-        }
-
-        if ($this->dispatcher && $entityToUpdate instanceof EntityInterface) {
-            $this->dispatcher->dispatch(new PreUpdateEvent($entityToUpdate));
-        }
-        $qb = \PhpDevCommunity\Sql\QueryBuilder::update($this->getTableName())
-            ->where(
-                sprintf('`%s` = %s',
-                    ColumnMapper::getPrimaryKeyColumnName($this->getEntityName()),
-                    $entityToUpdate->getPrimaryKeyValue()
-                )
-            );
-        $values = [];
-        foreach ((new SerializerToDb($entityToUpdate))->serialize($entityToUpdate->__getPropertiesModified()) as $key => $value) {
-            $keyWithoutBackticks = str_replace("`", "", $key);
-            $qb->set($key, ":$keyWithoutBackticks");
-            $values[$keyWithoutBackticks] = $value;
-        }
-        $rows = $this->em->getConnection()->executeStatement($qb, $values);
-        if ($rows > 0) {
-            $entityToUpdate->__reset();
-        }
-        return $rows;
-
+        return $this->ep->update($entityToUpdate);
     }
 
     public function delete(object $entityToDelete): int
     {
-        /**
-         * @var ProxyInterface|EntityInterface $entityToUpdate
-         */
-        $this->checkEntity($entityToDelete, true);
-        if ($entityToDelete->getPrimaryKeyValue() === null) {
-            throw new LogicException(static::class . sprintf(' Cannot delete an entity %s without a primary key ', get_class($entityToDelete)));
-        }
-
-        $qb = \PhpDevCommunity\Sql\QueryBuilder::delete($this->getTableName())
-            ->where(
-                sprintf('`%s` = %s',
-                    ColumnMapper::getPrimaryKeyColumnName($this->getEntityName()),
-                    $entityToDelete->getPrimaryKeyValue()
-                )
-            );
-
-        $rows = $this->em->getConnection()->executeStatement($qb);
-        if ($rows > 0) {
-            $entityToDelete->__destroy();
-        }
-        return $rows;
+        return $this->ep->delete($entityToDelete);
     }
 
     public function qb(): QueryBuilder
     {
         $queryBuilder = new QueryBuilder($this->em);
-        return $queryBuilder->select($this->getEntityName(), []);
-    }
-
-    private function checkEntity(object $entity, bool $proxy = false): void
-    {
-        $entityName = $this->getEntityName();
-        if (!$entity instanceof $entityName) {
-            throw new LogicException($entityName . ' Cannot insert an entity of type ' . get_class($entity));
-        }
-
-        if ($proxy && (!$entity instanceof ProxyInterface || !$entity->__isInitialized())) {
-            throw new LogicException($entityName . ' Cannot use an entity is not a proxy');
-        }
+        return $queryBuilder->select($this->getEntityName());
     }
 }

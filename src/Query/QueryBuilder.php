@@ -4,20 +4,29 @@ namespace PhpDevCommunity\PaperORM\Query;
 
 use InvalidArgumentException;
 use LogicException;
-use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\Cache\EntityMemcachedCache;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Hydrator\ArrayHydrator;
 use PhpDevCommunity\PaperORM\Hydrator\EntityHydrator;
+use PhpDevCommunity\PaperORM\Hydrator\ReadOnlyEntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
+use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 use PhpDevCommunity\Sql\QL\JoinQL;
 
 final class QueryBuilder
 {
-    private EntityManagerInterface $em;
+
+    public const HYDRATE_OBJECT = 'object';
+    public const HYDRATE_OBJECT_READONLY = 'readonly';
+    public const HYDRATE_ARRAY = 'array';
+    private PlatformInterface $platform;
+    private SchemaInterface $schema;
+    private EntityMemcachedCache $cache;
 
     private string $primaryKey;
 
@@ -33,30 +42,32 @@ final class QueryBuilder
 
     public function __construct(EntityManagerInterface $em, string $primaryKey = 'id')
     {
-        $this->em = $em;
+        $this->platform = $em->getPlatform();
+        $this->schema = $this->platform->getSchema();;
+        $this->cache = $em->getCache();
         $this->aliasGenerator = new AliasGenerator();
         $this->primaryKey = $primaryKey;
     }
 
-    public function getResultIterator(array $parameters = [], bool $objectHydrator = true): iterable
+    public function getResultIterator(array $parameters = [], string $hydrationMode = self::HYDRATE_OBJECT): iterable
     {
         foreach ($this->buildSqlQuery()->getResultIterator($parameters) as $item) {
-            yield $this->hydrate([$item], $objectHydrator)[0];
+            yield $this->hydrate([$item], $hydrationMode)[0];
         }
     }
 
-    public function getResult(array $parameters = [], bool $objectHydrator = true): array
+    public function getResult(array $parameters = [],  string $hydrationMode = self::HYDRATE_OBJECT): array
     {
-        return $this->hydrate($this->buildSqlQuery()->getResult($parameters), $objectHydrator);
+        return $this->hydrate($this->buildSqlQuery()->getResult($parameters), $hydrationMode);
     }
 
-    public function getOneOrNullResult(array $parameters = [], bool $objectHydrator = true)
+    public function getOneOrNullResult(array $parameters = [], string $hydrationMode = self::HYDRATE_OBJECT)
     {
         $item = $this->buildSqlQuery()->getOneOrNullResult($parameters);
         if ($item === null) {
             return null;
         }
-        return $this->hydrate([$item], $objectHydrator)[0];
+        return $this->hydrate([$item], $hydrationMode)[0];
     }
 
     public function select(string $entityName, array $properties = []): self
@@ -197,7 +208,7 @@ final class QueryBuilder
                 throw new InvalidArgumentException("Property {$propertyName} not found in class " . $entityName);
             }
 
-            $columns[] = $column->getName();
+            $columns[] = $this->schema->quote($column->getName());
         }
         return $columns;
     }
@@ -267,8 +278,8 @@ final class QueryBuilder
             $properties = ColumnMapper::getColumns($entityName);
         }
         $columns = $this->convertPropertiesToColumns($entityName, $properties);
-        $joinQl = new JoinQL($this->em->getConnection()->getPdo(), $this->primaryKey);
-        $joinQl->select($table, $alias, $columns);
+        $joinQl = new JoinQL($this->platform->getConnection()->getPdo(), $this->primaryKey);
+        $joinQl->select($this->schema->quote($table), $alias, $columns);
         foreach ($this->joins as $join) {
             $fromAlias = $join['fromAlias'];
             $targetTable = $join['targetTable'];
@@ -301,6 +312,7 @@ final class QueryBuilder
                 }
             }
             $joinConditions = [];
+            $targetTable = $this->schema->quote($targetTable);
             foreach ($criteria as $key => $value) {
                 $value = "$alias.$value";
                 $joinConditions[] = "$fromAlias.$key = $value";
@@ -364,12 +376,14 @@ final class QueryBuilder
         return $entityName;
     }
 
-    private function hydrate(array $data, bool $objectHydrator = true): array
+    private function hydrate(array $data, string $hydrationMode): array
     {
-        if (!$objectHydrator) {
+        if ($hydrationMode === self::HYDRATE_ARRAY) {
             $hydrator = new ArrayHydrator();
+        } elseif ($hydrationMode === self::HYDRATE_OBJECT_READONLY) {
+            $hydrator = new ReadOnlyEntityHydrator();
         } else {
-            $hydrator = new EntityHydrator($this->em->getCache());
+            $hydrator = new EntityHydrator($this->cache);
         }
         $collection = [];
         foreach ($data as $item) {
@@ -388,7 +402,7 @@ final class QueryBuilder
                 if ($column === null) {
                     throw new InvalidArgumentException(sprintf('Property %s not found in class %s or is a collection and cannot be used in an expression', $property, $fromEntityName));
                 }
-                $expression = str_replace($alias . '.' . $property, $alias . '.'.$column->getName(), $expression);
+                $expression = str_replace($alias . '.' . $property, $this->schema->quote($alias) . '.'.$this->schema->quote($column->getName()), $expression);
             }
 
         }

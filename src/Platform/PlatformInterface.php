@@ -7,6 +7,7 @@ use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\DatabaseSchemaDiffMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
+use PhpDevCommunity\PaperORM\PaperConnection;
 use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 
 /**
@@ -94,5 +95,7 @@ interface PlatformInterface
     public function diff(string $tableName, array $columns, array $indexes): DatabaseSchemaDiffMetadata;
     public function getSchema(): SchemaInterface;
     public function supportsTransactionalDDL(): bool;
+
+    public function getConnection(): PaperConnection;
 }
 
