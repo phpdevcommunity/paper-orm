@@ -56,7 +56,7 @@ class EntityManager implements EntityManagerInterface
         if (!isset($config['driver'])) {
             throw new \InvalidArgumentException('Missing "driver" in EntityManager configuration.');
         }
-        
+
         $this->connection = DriverManager::createConnection($config['driver'], $config);
         $this->unitOfWork = new UnitOfWork();
         $this->cache = new EntityMemcachedCache();
