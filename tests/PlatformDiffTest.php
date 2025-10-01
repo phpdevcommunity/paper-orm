@@ -24,7 +24,7 @@ class PlatformDiffTest extends TestCase
 
     protected function execute(): void
     {
-        foreach (DataBaseHelperTest::drivers() as $params) {
+        foreach (DataBaseHelperTest::drivers() as $name => $params) {
             $em = new EntityManager($params);
             $this->executeTest($em);
             $em->getConnection()->close();
@@ -45,10 +45,11 @@ class PlatformDiffTest extends TestCase
             new StringColumn('password'),
             (new BoolColumn('is_active'))->bindProperty('active'),
         ];
-        $platform->createTable('user', $columns);
+        $rows = $platform->createTable('user', $columns);
+//        var_dump($rows);
+//        exit();
 
         $diff = $platform->diff('user', $columns, [] );
-
         $this->assertEmpty($diff->getColumnsToAdd());
         $this->assertEmpty($diff->getColumnsToUpdate());
         $this->assertEmpty($diff->getColumnsToDelete());

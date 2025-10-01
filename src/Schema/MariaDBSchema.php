@@ -24,7 +24,7 @@ class MariaDBSchema implements SchemaInterface
 
     public function showTableColumns(string $tableName): string
     {
-        return sprintf("SHOW COLUMNS FROM %s", $tableName);
+        return sprintf("SHOW COLUMNS FROM %s", $this->quote($tableName));
     }
 
     public function showForeignKeys(string $tableName): string

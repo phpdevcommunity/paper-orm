@@ -10,6 +10,7 @@ use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
+use PhpDevCommunity\PaperORM\Proxy\ProxyFactory;
 use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
 use ReflectionClass;
 
@@ -26,28 +27,11 @@ final class EntityHydrator extends AbstractEntityHydrator
     {
         $primaryKey = ColumnMapper::getPrimaryKeyColumnName($class);
 
-        $object = $this->cache->get($class, $data[$primaryKey])
-            ?: $this->createProxy($class);
+        $object = $this->cache->get($class, $data[$primaryKey]) ?: ProxyFactory::create($class);
 
         $this->cache->set($class, $data[$primaryKey], $object);
 
         return $object;
-    }
-
-    private function createProxy(string $class): object
-    {
-        $sanitized = str_replace('\\', '_', $class);
-        $proxyClass = 'Proxy_' . $sanitized;
-
-        if (!class_exists($proxyClass)) {
-            eval("
-                class $proxyClass extends \\$class implements \\PhpDevCommunity\\PaperORM\\Proxy\\ProxyInterface {
-                    use \\PhpDevCommunity\\PaperORM\\Proxy\\ProxyInitializedTrait;
-                }
-            ");
-        }
-
-        return new $proxyClass();
     }
 }
 

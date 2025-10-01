@@ -36,7 +36,7 @@ trait ProxyInitializedTrait
         if (!$this->__initialized) {
             return false;
         }
-        return json_encode($this->getValues()) !== json_encode($this->__valuesInitialized);
+        return count($this->__getPropertiesModified()) > 0;
     }
 
     public function __getPropertiesModified() : array
@@ -44,7 +44,23 @@ trait ProxyInitializedTrait
         if (!$this->__initialized) {
             return [];
         }
-        return array_keys(array_diff_assoc($this->getValues(), $this->__valuesInitialized));
+
+        $changed = [];
+        $initial = $this->__valuesInitialized;
+        $current = $this->getValues();
+
+        foreach ($current as $key => $value) {
+            if (!array_key_exists($key, $initial)) {
+                $changed[] = $key;
+                continue;
+            }
+
+            if ($value !== $initial[$key]) {
+                $changed[] = $key;
+            }
+        }
+
+        return $changed;
     }
 
     public function __destroy() : void
@@ -59,7 +75,7 @@ trait ProxyInitializedTrait
         $this->__setInitialized($this->__propertiesInitialized);
     }
 
-    private function getParentClass(): string
+    public function __getParentClass(): string
     {
         return get_parent_class($this);
     }

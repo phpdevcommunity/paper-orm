@@ -123,7 +123,7 @@ final class PaperConnection
     public function cloneConnectionWithoutDbname(): self
     {
         $params = $this->params;
-        unset($params['dbname']);
+        unset($params['path']);
         return new self($this->driver, $params);
     }
 

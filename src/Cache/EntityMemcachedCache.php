@@ -10,7 +10,6 @@ final class EntityMemcachedCache
      */
     private array $cache = [];
 
-
     public function get(string $class, string $primaryKeyValue): ?object
     {
         $key = $this->generateKey($class, $primaryKeyValue);

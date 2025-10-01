@@ -28,6 +28,7 @@ class PersistAndFlushTest extends TestCase
             $em = new EntityManager($params);
             DataBaseHelperTest::init($em);
             $this->testInsert($em);
+            $this->testInsertAndUpdate($em);
             $this->testUpdate($em);
             $this->testUpdateJoinColumn($em);
             $this->testDelete($em);
@@ -55,12 +56,32 @@ class PersistAndFlushTest extends TestCase
         $em->clear();
     }
 
+
+    private function testInsertAndUpdate(EntityManager $em): void
+    {
+        $user = new UserTest();
+        $user->setFirstname('John');
+        $user->setLastname('Doe');
+        $user->setPassword('secret');
+        $user->setEmail('Xq5qI@example.com');
+        $user->setActive(true);
+        $em->persist($user);
+        $em->flush();
+        $this->assertNotNull($user->getId());
+        $this->assertInstanceOf(\DateTimeInterface::class, $user->getCreatedAt());
+        $user->setLastname('TOTO');
+        $em->persist($user);
+        $em->flush();
+        $em->clear();
+    }
+
     private function testUpdate(EntityManager $em): void
     {
         $userRepository = $em->getRepository(UserTest::class);
         $user = $userRepository->findBy()->first()->orderBy('id')->toObject();
         $this->assertInstanceOf(ProxyInterface::class, $user);
         $this->assertInstanceOf(UserTest::class, $user);
+        $this->assertStrictEquals(UserTest::class, $user->__getParentClass());
         /**
          * @var ProxyInterface|UserTest $user
          */

@@ -38,7 +38,7 @@ class MariaDBPlatform extends AbstractPlatform
 
     public function getDatabaseName(): string
     {
-        return $this->connection->getParams()['dbname'] ?? '';
+        return $this->connection->getParams()['path'] ?? '';
     }
 
     public function listTables(): array

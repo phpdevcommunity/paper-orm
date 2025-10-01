@@ -6,6 +6,7 @@ namespace PhpDevCommunity\PaperORM\Mapper;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Entity\TableMetadataInterface;
 use PhpDevCommunity\PaperORM\Mapping\Entity;
+use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
 
 final class EntityMapper
 {
@@ -63,8 +64,12 @@ final class EntityMapper
         ));
     }
 
-    static public function getEntityPHP8($class): ?Entity
+    static private function getEntityPHP8($class): ?Entity
     {
+        if ($class instanceof ProxyInterface) {
+            $class = $class->__getParentClass();
+        }
+
         $reflector = new \ReflectionClass($class);
         $attributes = $reflector->getAttributes(Entity::class);
         if (!empty($attributes)) {

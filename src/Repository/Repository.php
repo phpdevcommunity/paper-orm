@@ -98,7 +98,9 @@ abstract class Repository
 
     public function delete(object $entityToDelete): int
     {
-        return $this->ep->delete($entityToDelete);
+        $rows = $this->ep->delete($entityToDelete);
+        $this->em->getCache()->invalidate(get_class($entityToDelete), $entityToDelete->getPrimaryKeyValue());
+        return $rows;
     }
 
     public function qb(): QueryBuilder

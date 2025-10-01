@@ -15,4 +15,6 @@ interface ProxyInterface
     public function __destroy(): void;
 
     public function __reset(): void;
+
+    public function __getParentClass(): string;
 }

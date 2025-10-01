@@ -13,6 +13,7 @@ use PhpDevCommunity\PaperORM\EventListener\UpdatedAtListener;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Parser\DSNParser;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
+use PhpDevCommunity\PaperORM\Proxy\ProxyFactory;
 use PhpDevCommunity\PaperORM\Repository\Repository;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\EventDispatcher\ListenerProviderInterface;
@@ -20,6 +21,7 @@ use Psr\Log\LoggerInterface;
 
 class EntityManager implements EntityManagerInterface
 {
+
     private PaperConnection $connection;
 
     private UnitOfWork $unitOfWork;
@@ -54,7 +56,7 @@ class EntityManager implements EntityManagerInterface
         if (!isset($config['driver'])) {
             throw new \InvalidArgumentException('Missing "driver" in EntityManager configuration.');
         }
-
+        
         $this->connection = DriverManager::createConnection($config['driver'], $config);
         $this->unitOfWork = new UnitOfWork();
         $this->cache = new EntityMemcachedCache();

@@ -30,7 +30,7 @@ class DataBaseHelperTest
                 'driver' => 'mariadb',
                 'host' => getenv('MARIADB_HOST') ?: '127.0.0.1',
                 'port' => (int)(getenv('MARIADB_PORT') ?: 3306),
-                'dbname' => getenv('MARIADB_DB') ?: 'paper_orm_test',
+                'path' => getenv('MARIADB_DB') ?: 'paper_orm_test',
                 'user' => getenv('MARIADB_USER') ?: 'root',
                 'password' => getenv('MARIADB_PASSWORD') ?: '',
                 'charset' => 'utf8mb4',
