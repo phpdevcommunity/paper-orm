@@ -4,6 +4,7 @@ namespace PhpDevCommunity\PaperORM\Platform;
 
 use InvalidArgumentException;
 use LogicException;
+use PhpDevCommunity\PaperORM\Mapping\Column\BinaryColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\BoolColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateColumn;
@@ -271,6 +272,10 @@ class MariaDBPlatform extends AbstractPlatform
             StringColumn::class => [
                 'type' => 'VARCHAR',
                 'args' => [255]
+            ],
+            BinaryColumn::class => [
+                'type' => 'BLOB',
+                'args' => []
             ],
         ];
     }

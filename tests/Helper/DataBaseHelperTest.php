@@ -153,6 +153,8 @@ class DataBaseHelperTest
                 $lastId = $connection->getPdo()->lastInsertId();
                 $connection->executeStatement('UPDATE user SET last_post_id = ' . $lastId . ' WHERE id = ' . $post['user_id']);
             }
+
+
             $nbTags = $nbPosts * 2;
             for ($i = 0; $i < $nbTags; $i++) {
                 $id = uniqid('tag_', true);

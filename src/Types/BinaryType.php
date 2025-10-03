@@ -2,7 +2,7 @@
 
 namespace PhpDevCommunity\PaperORM\Types;
 
-final class BlobType extends Type
+final class BinaryType extends Type
 {
     public function convertToDatabase($value): ?string
     {
@@ -28,6 +28,5 @@ final class BlobType extends Type
         }
 
         throw new \LogicException('Blob must be a binary string, got '.gettype($value));
-
     }
 }

@@ -222,11 +222,47 @@ class RepositoryTest extends TestCase
         }
 
         $em->clear();
+
+
+        $countUsers = $userRepository->findBy()
+            ->orderBy('id', 'DESC')
+            ->has('posts.tags')
+            ->has('posts.comments')
+            ->toCount();
+        $this->assertStrictEquals(4, $countUsers);
+
+
+        $users = $userRepository->findBy()
+            ->orderBy('id', 'DESC')
+            ->has('posts.tags')
+            ->has('posts.comments')
+            ->limit(2)
+            ->toArray();
+
+        $this->assertEquals(4, $users[0]['id']);
+        $this->assertEquals(1, count($users[0]['posts']));
+        $this->assertEquals(3, $users[1]['id']);
+        $this->assertEquals(2, count($users[1]['posts']));
+
+        $users = $userRepository->findBy()
+            ->orderBy('id', 'DESC')
+            ->has('posts.tags')
+            ->has('posts.comments')
+            ->offset(2)
+            ->limit(2)
+            ->toArray();
+
+        $this->assertEquals(2, $users[0]['id']);
+        $this->assertEquals(2, count($users[0]['posts']));
+        $this->assertEquals(1, $users[1]['id']);
+        $this->assertEquals(2, count($users[1]['posts']));
+
         $users = $userRepository->findBy()
             ->orderBy('id', 'DESC')
             ->has('posts.tags')
             ->has('posts.comments')
             ->toArray();
+
 
         $this->assertStrictEquals(4, count($users));
         foreach ($users as $user) {
@@ -316,6 +352,7 @@ class RepositoryTest extends TestCase
             ->orderBy('id', 'DESC')
             ->with(PostTest::class)
             ->toObject();
+
 
         $this->assertStrictEquals( 5, $user->getId() );
         $this->assertEmpty($user->getPosts()->toArray());

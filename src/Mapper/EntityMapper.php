@@ -68,6 +68,12 @@ final class EntityMapper
     {
         if ($class instanceof ProxyInterface) {
             $class = $class->__getParentClass();
+        }elseif (is_subclass_of($class, ProxyInterface::class)) {
+            $reflector = new \ReflectionClass($class);
+            $parentClass = $reflector->getParentClass();
+            if ($parentClass) {
+                $class = $parentClass->getName();
+            }
         }
 
         $reflector = new \ReflectionClass($class);

@@ -37,6 +37,11 @@ final class Fetcher
         return $this;
     }
 
+    public function offset(?int $offset): Fetcher
+    {
+        $this->queryBuilder->setFirstResult($offset);
+        return $this;
+    }
     public function limit(?int $limit): Fetcher
     {
         $this->queryBuilder->setMaxResults($limit);
@@ -68,29 +73,33 @@ final class Fetcher
 
     public function toArray(): ?array
     {
-        if ($this->collection) {
-            return $this->queryBuilder->getResult($this->arguments, QueryBuilder::HYDRATE_ARRAY);
-        }
-
-        return $this->queryBuilder->getOneOrNullResult($this->arguments, QueryBuilder::HYDRATE_ARRAY);
+        return $this->getResult(QueryBuilder::HYDRATE_ARRAY);
     }
 
     public function toObject()
     {
-        if ($this->collection) {
-            return $this->queryBuilder->getResult($this->arguments);
-        }
-
-        return $this->queryBuilder->getOneOrNullResult($this->arguments);
+       return $this->getResult(QueryBuilder::HYDRATE_OBJECT);
     }
 
     public function toReadOnlyObject()
     {
+        return $this->getResult(QueryBuilder::HYDRATE_OBJECT_READONLY)  ;
+    }
+
+    public function toCount(): int
+    {
+        return $this->queryBuilder->getCountResult();
+    }
+
+    private function getResult(string $hydrationMode)
+    {
+        $this->queryBuilder->setParams($this->arguments);
         if ($this->collection) {
-            return $this->queryBuilder->getResult($this->arguments, QueryBuilder::HYDRATE_OBJECT_READONLY);
+            return $this->queryBuilder->getResult($hydrationMode);
         }
 
-        return $this->queryBuilder->getOneOrNullResult($this->arguments,QueryBuilder::HYDRATE_OBJECT_READONLY);
+        return $this->queryBuilder->getOneOrNullResult($hydrationMode);
+
     }
 
     private function joinRelation(string $type, string $expression): void

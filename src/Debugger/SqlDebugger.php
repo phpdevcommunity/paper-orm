@@ -26,6 +26,7 @@ class SqlDebugger
             'startTime' => microtime(true),
             'executionTime' => 0,
         ];
+
     }
 
     public function stopQuery(): void

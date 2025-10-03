@@ -4,6 +4,7 @@ namespace PhpDevCommunity\PaperORM\Platform;
 
 use InvalidArgumentException;
 use LogicException;
+use PhpDevCommunity\PaperORM\Mapping\Column\BinaryColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\BoolColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateColumn;
@@ -277,6 +278,10 @@ class SqlitePlatform extends AbstractPlatform
             ],
             TimestampColumn::class => [
                 'type' => 'DATETIME',
+                'args' => [],
+            ],
+            BinaryColumn::class => [
+                'type' => 'BLOB',
                 'args' => [],
             ]
         ];

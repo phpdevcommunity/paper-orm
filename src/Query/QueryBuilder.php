@@ -37,8 +37,10 @@ final class QueryBuilder
 
     private array $joins = [];
     private array $joinsAlreadyAdded = [];
-
+    private ?int $firstResult = null;
     private ?int $maxResults = null;
+
+    private array $params = [];
 
     public function __construct(EntityManagerInterface $em, string $primaryKey = 'id')
     {
@@ -49,25 +51,30 @@ final class QueryBuilder
         $this->primaryKey = $primaryKey;
     }
 
-    public function getResultIterator(array $parameters = [], string $hydrationMode = self::HYDRATE_OBJECT): iterable
+    public function getResultIterator(string $hydrationMode = self::HYDRATE_OBJECT): iterable
     {
-        foreach ($this->buildSqlQuery()->getResultIterator($parameters) as $item) {
+        foreach ($this->buildSqlQuery()->getResultIterator() as $item) {
             yield $this->hydrate([$item], $hydrationMode)[0];
         }
     }
 
-    public function getResult(array $parameters = [],  string $hydrationMode = self::HYDRATE_OBJECT): array
+    public function getResult(string $hydrationMode = self::HYDRATE_OBJECT): array
     {
-        return $this->hydrate($this->buildSqlQuery()->getResult($parameters), $hydrationMode);
+        return $this->hydrate($this->buildSqlQuery()->getResult(), $hydrationMode);
     }
 
-    public function getOneOrNullResult(array $parameters = [], string $hydrationMode = self::HYDRATE_OBJECT)
+    public function getOneOrNullResult(string $hydrationMode = self::HYDRATE_OBJECT)
     {
-        $item = $this->buildSqlQuery()->getOneOrNullResult($parameters);
+        $item = $this->buildSqlQuery()->getOneOrNullResult();
         if ($item === null) {
             return null;
         }
         return $this->hydrate([$item], $hydrationMode)[0];
+    }
+
+    public function getCountResult(): int
+    {
+        return $this->buildSqlQuery()->count();
     }
 
     public function select(string $entityName, array $properties = []): self
@@ -115,6 +122,18 @@ final class QueryBuilder
         return $this;
     }
 
+    public function setParams(array $params): self
+    {
+        $this->params = $params;
+        return $this;
+    }
+
+    public function setParam(string $name, $value): self
+    {
+        $this->params[$name] = $value;
+        return $this;
+    }
+
     public function resetWhere(): self
     {
         $this->where = [];
@@ -127,6 +146,12 @@ final class QueryBuilder
         return $this;
     }
 
+    public function resetParams(): self
+    {
+        $this->params = [];
+        return $this;
+    }
+
     public function leftJoin(string $fromAliasOrEntityName, string $targetEntityName, ?string $property = null): self
     {
         return $this->join('LEFT', $fromAliasOrEntityName, $targetEntityName, $property);
@@ -135,6 +160,17 @@ final class QueryBuilder
     public function innerJoin(string $fromAliasOrEntityName, string $targetEntityName, ?string $property = null): self
     {
         return $this->join('INNER', $fromAliasOrEntityName, $targetEntityName, $property);
+    }
+
+    public function setFirstResult(?int $firstResult): self
+    {
+        if ($this->select === []) {
+            throw new LogicException(
+                'You must call the select() method first to define the main table for the query '
+            );
+        }
+        $this->firstResult = $firstResult;
+        return $this;
     }
 
     public function setMaxResults(?int $maxResults): self
@@ -332,8 +368,15 @@ final class QueryBuilder
             $joinQl->orderBy($this->resolveExpression($orderBy['sort']), $orderBy['order']);
         }
 
+        foreach ($this->params as $key => $value) {
+            $joinQl->setParam($key, $value);
+        }
+
         if ($this->maxResults) {
             $joinQl->setMaxResults($this->maxResults);
+        }
+        if ($this->firstResult) {
+            $joinQl->setFirstResult($this->firstResult);
         }
         return $joinQl;
     }
@@ -378,12 +421,12 @@ final class QueryBuilder
 
     private function hydrate(array $data, string $hydrationMode): array
     {
-        if ($hydrationMode === self::HYDRATE_ARRAY) {
-            $hydrator = new ArrayHydrator();
+        if ($hydrationMode === self::HYDRATE_OBJECT) {
+            $hydrator = new EntityHydrator($this->cache);
         } elseif ($hydrationMode === self::HYDRATE_OBJECT_READONLY) {
             $hydrator = new ReadOnlyEntityHydrator();
         } else {
-            $hydrator = new EntityHydrator($this->cache);
+            $hydrator = new ArrayHydrator();
         }
         $collection = [];
         foreach ($data as $item) {
