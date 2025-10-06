@@ -13,7 +13,6 @@ use PhpDevCommunity\PaperORM\Command\ShowTablesCommand;
 use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
-use PhpDevCommunity\PaperORM\Parser\DSNParser;
 use Psr\Container\ContainerInterface;
 
 class MichelPaperORMPackage implements PackageInterface
@@ -25,23 +24,22 @@ class MichelPaperORMPackage implements PackageInterface
                 return $container->get(EntityManager::class);
             },
             EntityManager::class => static function (ContainerInterface $container) {
-                $dsn = $container->get('database.dsn');
-                if (!is_string($dsn) || empty($dsn)) {
-                    throw new LogicException('Database DSN not found, please set DATABASE_DSN in .env file or database.dsn in config');
-                }
-                $params = DSNParser::parse($container->get('database.dsn'));
-                $params['options']['debug'] = $container->get('michel.debug');
-                return new EntityManager($params);
+                return EntityManager::createFromDsn(
+                    $container->get('paper.orm.dsn'),
+                    $container->get('paper.orm.debug'),
+                    $container->get('paper.orm.logger'),
+                    []
+                );
             },
             PaperMigration::class => static function (ContainerInterface $container) {
                 return PaperMigration::create(
                     $container->get(EntityManagerInterface::class),
-                    $container->get('paper.migration.table'),
-                    $container->get('paper.migration.dir')
+                    $container->get('paper.orm.migrations_table'),
+                    $container->get('paper.orm.migrations_dir')
                 );
             },
             MigrationDiffCommand::class => static function (ContainerInterface $container) {
-                return new MigrationDiffCommand($container->get(PaperMigration::class), $container->get('paper.entity.dir'));
+                return new MigrationDiffCommand($container->get(PaperMigration::class), $container->get('paper.entity_dir'));
             },
             DatabaseDropCommand::class => static function (ContainerInterface $container) {
                 return new DatabaseDropCommand($container->get(EntityManagerInterface::class), $container->get('michel.environment'));
@@ -52,22 +50,26 @@ class MichelPaperORMPackage implements PackageInterface
     public function getParameters(): array
     {
         return [
-            'database.dsn' => getenv('DATABASE_DSN') ?? '',
-            'paper.migration.dir' => getenv('PAPER_MIGRATION_DIR') ?: function (ContainerInterface $container) {
-                $folder = $container->get('michel.project_dir') . DIRECTORY_SEPARATOR . 'migrations';
-                if (!is_dir($folder)) {
-                    mkdir($folder, 0777, true);
-                }
-                return $folder;
+            'paper.orm.dsn' => getenv('DATABASE_URL') ?? '',
+            'paper.orm.debug' => static function (ContainerInterface $container) {
+                return $container->get('michel.debug');
             },
-            'paper.migration.table' => getenv('PAPER_MIGRATION_TABLE') ?: 'mig_versions',
-            'paper.entity.dir' => getenv('PAPER_ENTITY_DIR') ?: function (ContainerInterface $container) {
+            'paper.orm.logger' => null,
+            'paper.orm.entity_dir' => getenv('PAPER_ORM_ENTITY_DIR') ?: static function (ContainerInterface $container) {
                 $folder = $container->get('michel.project_dir') . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Entity';
                 if (!is_dir($folder)) {
                     mkdir($folder, 0777, true);
                 }
                 return $folder;
             },
+            'paper.orm.migrations_dir' => getenv('PAPER_ORM_MIGRATIONS_DIR') ?: static function (ContainerInterface $container) {
+                $folder = $container->get('michel.project_dir') . DIRECTORY_SEPARATOR . 'migrations';
+                if (!is_dir($folder)) {
+                    mkdir($folder, 0777, true);
+                }
+                return $folder;
+            },
+            'paper.orm.migrations_table' => getenv('PAPER_ORM_MIGRATIONS_TABLE') ?: 'mig_versions',
         ];
     }
 

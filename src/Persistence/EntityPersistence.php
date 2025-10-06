@@ -53,8 +53,8 @@ class EntityPersistence
             $qb->setValue($schema->quote($key), ":$key");
             $values[$key] = $value;
         }
+        $rows = $this->execute($qb, $values);
         $conn = $this->platform->getConnection();
-        $rows = $conn->executeStatement($qb, $values);
         $lastInsertId = $conn->getPdo()->lastInsertId();
         if ($rows > 0) {
             $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entity);
@@ -105,8 +105,7 @@ class EntityPersistence
             $qb->set($schema->quote($key), ":$key");
             $values[$key] = $value;
         }
-        $conn = $this->platform->getConnection();
-        $rows = $conn->executeStatement($qb, $values);
+        $rows = $this->execute($qb, $values);
         if ($rows > 0 && $entity instanceof ProxyInterface) {
             $entity->__reset();
         }
@@ -128,8 +127,7 @@ class EntityPersistence
         $qb = QueryBuilder::delete($schema->quote($tableName))
             ->where(sprintf('%s = :id', $schema->quote(ColumnMapper::getPrimaryKeyColumnName($entity))));
 
-        $conn = $this->platform->getConnection();
-        $rows = $conn->executeStatement($qb,  [
+        $rows = $this->execute($qb, [
             'id' => $entity->getPrimaryKeyValue(),
         ]);
         if ($rows > 0) {
@@ -141,6 +139,12 @@ class EntityPersistence
             }
         }
         return $rows;
+    }
+
+    private function execute(string $query, array $params = []): int
+    {
+        $conn = $this->platform->getConnection();
+        return $conn->executeStatement($query, $params);
     }
 
     private function checkEntity(object $entity,  bool $requireManaged = false): void

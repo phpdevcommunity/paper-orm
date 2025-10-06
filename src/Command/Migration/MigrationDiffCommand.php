@@ -10,6 +10,7 @@ use PhpDevCommunity\Console\OutputInterface;
 use PhpDevCommunity\FileSystem\Tools\FileExplorer;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
+use PhpDevCommunity\PaperORM\Tools\EntityExplorer;
 
 class MigrationDiffCommand implements CommandInterface
 {
@@ -35,8 +36,7 @@ class MigrationDiffCommand implements CommandInterface
     public function getOptions(): array
     {
         return [
-            new CommandOption('entities-dir', null, 'The directory where the entities are', false),
-            new CommandOption('output', 'o', 'The output file', true)
+            new CommandOption('entities-dir', null, 'The directory where the entities are', false)
         ];
     }
 
@@ -50,7 +50,7 @@ class MigrationDiffCommand implements CommandInterface
         $io = ConsoleOutput::create($output);
 
         $entitiesDir = $this->defaultEntitiesDir;
-        $printOutput = $input->getOptionValue('output');
+        $printOutput = $input->getOptionValue('verbose');
         if ($input->hasOption('entities-dir')) {
             $entitiesDir = $input->getOptionValue('entities-dir');
         }
@@ -67,20 +67,11 @@ class MigrationDiffCommand implements CommandInterface
             'Entities directory : ' . $entitiesDir
         ]);
 
-        $explorer = new FileExplorer($entitiesDir);
-        $files = $explorer->searchByExtension('php', true);
-        $entities = [];
-        foreach ($files as $file) {
-            $entityClass = self::extractNamespaceAndClass($file['path']);
-            if ($entityClass !== null && class_exists($entityClass) && is_subclass_of($entityClass, EntityInterface::class)) {
-                $entities[$file['path']] = $entityClass;
-            }
-        }
-
+        $entities = EntityExplorer::getEntities($entitiesDir);
         $io->title('Number of entities detected: ' . count($entities));
         $io->listKeyValues($entities);
 
-        $file = $this->paperMigration->diffEntities($entities);
+        $file = $this->paperMigration->generateMigrationFromEntities($entities);
         if ($file === null) {
             $io->info('No migration file was generated — all entities are already in sync with the database schema.');
             return;
@@ -96,55 +87,7 @@ class MigrationDiffCommand implements CommandInterface
             $io->listKeyValues($lines);
         }
 
-        $io->success('Migration file successfully generated: ' . $file);
+        $io->success('✅ Migration file successfully generated: ' . $file);
     }
 
-    private static function extractNamespaceAndClass(string $filePath): ?string
-    {
-        if (!file_exists($filePath)) {
-            throw new \InvalidArgumentException('File not found: ' . $filePath);
-        }
-
-        $contents = file_get_contents($filePath);
-        $namespace = '';
-        $class = '';
-        $isExtractingNamespace = false;
-        $isExtractingClass = false;
-
-        foreach (token_get_all($contents) as $token) {
-            if (is_array($token) && $token[0] == T_NAMESPACE) {
-                $isExtractingNamespace = true;
-            }
-
-            if (is_array($token) && $token[0] == T_CLASS) {
-                $isExtractingClass = true;
-            }
-
-            if ($isExtractingNamespace) {
-                if (is_array($token) && in_array($token[0], [T_STRING, T_NS_SEPARATOR,  265 /* T_NAME_QUALIFIED For PHP 8*/])) {
-                    $namespace .= $token[1];
-                } else if ($token === ';') {
-                    $isExtractingNamespace = false;
-                }
-            }
-
-            if ($isExtractingClass) {
-                if (is_array($token) && $token[0] == T_STRING) {
-                    $class = $token[1];
-                    break;
-                }
-            }
-        }
-
-        if (empty($class)) {
-            return null;
-        }
-
-        $fullClass = $namespace ? $namespace . '\\' . $class : $class;
-        if (class_exists($fullClass) && is_subclass_of($fullClass, EntityInterface::class)) {
-            return $fullClass;
-        }
-
-        return null;
-    }
 }

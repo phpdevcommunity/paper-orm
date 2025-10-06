@@ -56,7 +56,7 @@ class MigrationMigrateCommand implements CommandInterface
         }
 
         foreach ($successList as $version) {
-            $io->success('Migration successfully executed: version ' . $version);
+            $io->success('✅ Migration successfully executed: version ' . $version);
         }
 
         if (empty($successList) && $error === null) {

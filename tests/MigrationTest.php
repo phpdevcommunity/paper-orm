@@ -55,7 +55,7 @@ class MigrationTest extends TestCase
         $em = $paperMigration->getEntityManager();
         $driver = $em->getConnection()->getDriver();
         $em->getConnection()->close();
-        $migrationFile = $paperMigration->diffEntities([
+        $migrationFile = $paperMigration->generateMigrationFromEntities([
             UserTest::class,
             PostTest::class
         ]);
@@ -107,7 +107,7 @@ class MigrationTest extends TestCase
         $successList = $paperMigration->getSuccessList();
         $this->assertTrue(count($successList) === 1);
 
-        $migrationFile = $paperMigration->diffEntities([UserTest::class]);
+        $migrationFile = $paperMigration->generateMigrationFromEntities([UserTest::class]);
         $this->assertNull($migrationFile);
     }
 
@@ -119,7 +119,7 @@ class MigrationTest extends TestCase
         $userColumns = ColumnMapper::getColumns(UserTest::class);
         $userColumns[3] = (new StringColumn(null, 255, true, null, true))->bindProperty('email');
         $userColumns[] = (new IntColumn(null, false, 0))->bindProperty('childs');
-        $migrationFile = $paperMigration->diff([
+        $migrationFile = $paperMigration->generateMigrationFromTables([
             'user' => [
                 'columns' => $userColumns,
                 'indexes' => []

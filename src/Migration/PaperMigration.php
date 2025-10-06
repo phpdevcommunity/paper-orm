@@ -118,22 +118,42 @@ SQL;
         }
     }
 
-    public function diffEntities(array $entities): ?string
+    public function generateMigrationFromEntities(array $entities): ?string
     {
-        return $this->diff(self::transformEntitiesToTables($entities));
-    }
+        $tables = self::transformEntitiesToTables($entities);
+        $diff = $this->computeDiffTables($tables);
 
-    public function diff(array $tables): ?string
-    {
-        $statements = (new SchemaDiffGenerator($this->platform))->generateDiffStatements($tables);
-        $sqlUp = $statements['up'];
-        $sqlDown = $statements['down'];
-
-        if (empty($sqlUp)) {
+        if (!$diff) {
             return null;
         }
 
-        return $this->generateMigration($sqlUp, $sqlDown);
+        return $this->generateMigration($diff['up'], $diff['down']);
+    }
+
+    /**
+     * Compute the SQL diff (UP part) for preview only.
+     * Does not generate any file.
+     */
+    public function getSqlDiffFromEntities(array $entities): array
+    {
+        $tables = self::transformEntitiesToTables($entities);
+        $diff = $this->computeDiffTables($tables);
+
+        return $diff['up'] ?: [];
+    }
+
+    /**
+     * Generate and write a migration file based on table differences.
+     * Returns the path of the generated file.
+     */
+    public function generateMigrationFromTables(array $tables): ?string
+    {
+        $diff = $this->computeDiffTables($tables);
+        if (!$diff) {
+            return null;
+        }
+
+        return $this->generateMigration($diff['up'], $diff['down']);
     }
 
     public function up(string $version): void
@@ -239,6 +259,20 @@ SQL;
         $query = rtrim($query, ';') . ';';
         $this->getConnection()->executeStatement($query);
         return true;
+    }
+
+    private function computeDiffTables(array $tables): ?array
+    {
+        $statements = (new SchemaDiffGenerator($this->platform))->generateDiffStatements($tables);
+
+        if (empty($statements['up'])) {
+            return null;
+        }
+
+        return [
+            'up'   => $statements['up'],
+            'down' => $statements['down'] ?? '',
+        ];
     }
 
     private static function contentUp(string $migration): string

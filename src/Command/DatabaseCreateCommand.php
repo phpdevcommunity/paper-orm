@@ -50,7 +50,7 @@ class DatabaseCreateCommand implements CommandInterface
             $io->info(sprintf('The SQL database "%s" has been successfully created (if it did not already exist).', $platform->getDatabaseName()));
         } else {
             $platform->createDatabase();
-            $io->success(sprintf('The SQL database "%s" has been successfully created.', $platform->getDatabaseName()));
+            $io->success(sprintf('✅ The SQL database "%s" has been successfully created.', $platform->getDatabaseName()));
         }
     }
 }
