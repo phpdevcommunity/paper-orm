@@ -58,7 +58,7 @@ class DatabaseDropCommand implements CommandInterface
 
         $platform = $this->entityManager->getPlatform();
         $platform->dropDatabase();
-        $io->success('✅ The SQL database has been successfully dropped.');
+        $io->success('The SQL database has been successfully dropped.');
     }
 
     private function isEnabled(): bool

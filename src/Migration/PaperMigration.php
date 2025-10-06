@@ -139,7 +139,7 @@ SQL;
         $tables = self::transformEntitiesToTables($entities);
         $diff = $this->computeDiffTables($tables);
 
-        return $diff['up'] ?: [];
+        return $diff['up'] ?? [];
     }
 
     /**

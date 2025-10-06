@@ -97,7 +97,7 @@ class DatabaseSyncCommand implements CommandInterface
             $io->writeln("✔ Executed: {$sql}");
         }
 
-        $io->success("✅ Database successfully synchronized.");
+        $io->success("Database successfully synchronized.");
     }
 
     private function isEnabled(): bool
