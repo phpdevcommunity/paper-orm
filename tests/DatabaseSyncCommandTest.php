@@ -13,11 +13,12 @@ use PhpDevCommunity\PaperORM\Mapping\Column\IntColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
+use PhpDevCommunity\PaperORM\Migration\PaperMigration;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
 use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
 
-class DatabaseShowTablesCommandTest extends TestCase
+class DatabaseSyncCommandTest extends TestCase
 {
 
     protected function setUp(): void
@@ -44,48 +45,34 @@ class DatabaseShowTablesCommandTest extends TestCase
         $platform->createDatabaseIfNotExists();
         $platform->dropDatabase();
         $platform->createDatabaseIfNotExists();
-        $platform->createTable('user', [
-            new PrimaryKeyColumn('id'),
-            new StringColumn('firstname'),
-            new StringColumn('lastname'),
-            new StringColumn('email'),
-            new StringColumn('password'),
-            new BoolColumn('is_active'),
-        ]);
 
-        $platform->createTable('post', [
-            new PrimaryKeyColumn('id'),
-            new JoinColumn('user_id', UserTest::class),
-            new StringColumn('title'),
-            new StringColumn('content'),
-        ]);
-
+        $paperMigration = PaperMigration::create($em, 'mig_versions', __DIR__ . '/migrations');
         $runner = new CommandRunner([
-            new ShowTablesCommand($em)
+            new DatabaseSyncCommand($paperMigration, __DIR__ . '/Entity', 'test'),
         ]);
 
         $out = [];
-        $code = $runner->run(new CommandParser(['', 'paper:show:tables', '--columns']), new Output(function ($message) use(&$out) {
+        $code = $runner->run(new CommandParser(['', 'paper:database:sync', '--no-execute']), new Output(function ($message) use(&$out) {
             $out[] = $message;
         }));
         $this->assertEquals(0, $code);
-        $this->assertEquals(132, count($out));
+        $this->assertStringContains( implode(' ', $out), "[INFO] Preview mode only — SQL statements were displayed but NOT executed.");
 
         $out = [];
-        $code = $runner->run(new CommandParser(['', 'paper:show:tables', 'post']), new Output(function ($message) use(&$out) {
+        $code = $runner->run(new CommandParser(['', 'paper:database:sync']), new Output(function ($message) use(&$out) {
             $out[] = $message;
         }));
 
         $this->assertEquals(0, $code);
-        $this->assertEquals(16, count($out));
-
-        $out = [];
-        $code = $runner->run(new CommandParser(['', 'paper:show:tables', 'post', '--columns']), new Output(function ($message) use(&$out) {
-            $out[] = $message;
-        }));
-
-        $this->assertEquals(0, $code);
-        $this->assertEquals(62, count($out));
+        $this->assertStringContains( implode(' ', $out), "✔ Executed:");
+//
+//        $out = [];
+//        $code = $runner->run(new CommandParser(['', 'paper:show:tables', 'post', '--columns']), new Output(function ($message) use(&$out) {
+//            $out[] = $message;
+//        }));
+//
+//        $this->assertEquals(0, $code);
+//        $this->assertEquals(62, count($out));
 
 
         $platform->dropDatabase();

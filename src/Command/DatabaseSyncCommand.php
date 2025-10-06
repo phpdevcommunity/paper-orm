@@ -2,6 +2,7 @@
 
 namespace PhpDevCommunity\PaperORM\Command;
 
+use PhpDevCommunity\Console\Command\CommandInterface;
 use PhpDevCommunity\Console\InputInterface;
 use PhpDevCommunity\Console\Option\CommandOption;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
@@ -9,7 +10,7 @@ use PhpDevCommunity\Console\OutputInterface;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
 use PhpDevCommunity\PaperORM\Tools\EntityExplorer;
 
-class DatabaseSyncCommand
+class DatabaseSyncCommand implements CommandInterface
 {
 
     private PaperMigration $paperMigration;
@@ -43,7 +44,7 @@ class DatabaseSyncCommand
     public function getOptions(): array
     {
         return [
-            new CommandOption('--no-execute', 'n', 'Show the generated SQL statements without executing them.', true)
+            new CommandOption('no-execute', 'n', 'Show the generated SQL statements without executing them.', true)
         ];
     }
 

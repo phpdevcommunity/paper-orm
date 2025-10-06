@@ -6,6 +6,7 @@ use LogicException;
 use PhpDevCommunity\Michel\Package\PackageInterface;
 use PhpDevCommunity\PaperORM\Command\DatabaseCreateCommand;
 use PhpDevCommunity\PaperORM\Command\DatabaseDropCommand;
+use PhpDevCommunity\PaperORM\Command\DatabaseSyncCommand;
 use PhpDevCommunity\PaperORM\Command\Migration\MigrationDiffCommand;
 use PhpDevCommunity\PaperORM\Command\Migration\MigrationMigrateCommand;
 use PhpDevCommunity\PaperORM\Command\QueryExecuteCommand;
@@ -88,6 +89,7 @@ class MichelPaperORMPackage implements PackageInterface
         return [
             DatabaseCreateCommand::class,
             DatabaseDropCommand::class,
+            DatabaseSyncCommand::class,
             MigrationDiffCommand::class,
             MigrationMigrateCommand::class,
             QueryExecuteCommand::class,
