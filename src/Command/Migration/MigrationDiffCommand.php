@@ -67,7 +67,7 @@ class MigrationDiffCommand implements CommandInterface
             'Entities directory : ' . $entitiesDir
         ]);
 
-        $entities = EntityExplorer::getEntities($entitiesDir);
+        $entities = EntityExplorer::getEntities([$entitiesDir]);
         $io->title('Number of entities detected: ' . count($entities));
         $io->listKeyValues($entities);
 
@@ -87,7 +87,7 @@ class MigrationDiffCommand implements CommandInterface
             $io->listKeyValues($lines);
         }
 
-        $io->success('✅ Migration file successfully generated: ' . $file);
+        $io->success('Migration file successfully generated: ' . $file);
     }
 
 }

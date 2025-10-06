@@ -8,18 +8,19 @@ use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 final class EntityExplorer
 {
 
-    public static function getEntities(string $dir): array
+    public static function getEntities(array $dirs): array
     {
-        $explorer = new FileExplorer($dir);
-        $files = $explorer->searchByExtension('php', true);
         $entities = [];
-        foreach ($files as $file) {
-            $entityClass = self::extractNamespaceAndClass($file['path']);
-            if ($entityClass !== null && class_exists($entityClass) && is_subclass_of($entityClass, EntityInterface::class)) {
-                $entities[$file['path']] = $entityClass;
+        foreach ($dirs as $dir) {
+            $explorer = new FileExplorer($dir);
+            $files = $explorer->searchByExtension('php', true);
+            foreach ($files as $file) {
+                $entityClass = self::extractNamespaceAndClass($file['path']);
+                if ($entityClass !== null && class_exists($entityClass) && is_subclass_of($entityClass, EntityInterface::class)) {
+                    $entities[$file['path']] = $entityClass;
+                }
             }
         }
-
         return $entities;
     }
 

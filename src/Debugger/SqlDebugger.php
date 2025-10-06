@@ -47,6 +47,16 @@ class SqlDebugger
         return array_values($this->queries);
     }
 
+    public function getQueryCount(): int
+    {
+        return count($this->queries);
+    }
+
+    public function getTotalTime(): float
+    {
+        return array_sum(array_column($this->queries, 'executionTime'));
+    }
+
     public function clear(): void
     {
         $this->queries = [];

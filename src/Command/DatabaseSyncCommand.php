@@ -69,7 +69,7 @@ class DatabaseSyncCommand implements CommandInterface
             'Entities directory : ' . $this->entityDir
         ]);
 
-        $entities = EntityExplorer::getEntities($this->entityDir);
+        $entities = EntityExplorer::getEntities([$this->entityDir]);
         $io->title('Number of entities detected: ' . count($entities));
         $io->listKeyValues($entities);
 
