@@ -96,7 +96,7 @@ final class ColumnMapper
     {
         $columns = self::getColumns($class);
         foreach ($columns as $column) {
-            if ($column->getProperty() === $property || $column->getName() === $property) {
+            if ($column->getProperty() === $property) {
                 return $column;
             }
         }
@@ -112,7 +112,7 @@ final class ColumnMapper
     {
         $columns = array_merge(self::getColumns($class) , self::getOneToManyRelations($class));
         foreach ($columns as $column) {
-            if ($column->getProperty() === $property || $column->getName() === $property) {
+            if ($column->getProperty() === $property) {
                 if ($column instanceof JoinColumn) {
                     return $column;
                 }

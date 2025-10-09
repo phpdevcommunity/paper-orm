@@ -8,6 +8,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\IntColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
 
@@ -26,7 +27,7 @@ class PlatformTest extends TestCase
     protected function execute(): void
     {
         foreach (DataBaseHelperTest::drivers() as $params) {
-            $em = new EntityManager($params);
+            $em = EntityManager::createFromConfig(PaperConfiguration::fromArray($params));
             $this->testCreateTables($em);
             $this->testDropTable($em);
             $this->testDropColumn($em);

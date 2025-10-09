@@ -5,6 +5,7 @@ namespace Test\PhpDevCommunity\PaperORM\Entity;
 use DateTime;
 use PhpDevCommunity\PaperORM\Collection\ObjectStorage;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\Mapping\Column\SlugColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
@@ -26,7 +27,10 @@ class PostTest implements EntityInterface
     #[StringColumn]
     private ?string $content = null;
 
-    #[DateTimeColumn(name: 'created_at')]
+    #[SlugColumn(from : ['title'])]
+    private ?string $slug = null;
+
+    #[DateTimeColumn()]
     private ?DateTime $createdAt = null;
 
     #[JoinColumn(name: 'user_id', targetEntity:  UserTest::class, nullable: true, unique: false, onDelete: JoinColumn::SET_NULL)]
@@ -62,7 +66,8 @@ class PostTest implements EntityInterface
             (new PrimaryKeyColumn())->bindProperty('id'),
             (new StringColumn())->bindProperty('title'),
             (new StringColumn())->bindProperty('content'),
-            (new DateTimeColumn( 'created_at'))->bindProperty('createdAt'),
+            (new SlugColumn(null, ['title']))->bindProperty('slug'),
+            (new DateTimeColumn( null))->bindProperty('createdAt'),
             (new JoinColumn('user_id', UserTest::class, 'id', true, false, JoinColumn::SET_NULL))->bindProperty('user'),
             (new OneToMany( TagTest::class, 'post'))->bindProperty('tags'),
             (new OneToMany( CommentTest::class, 'post'))->bindProperty('comments'),
@@ -104,6 +109,17 @@ class PostTest implements EntityInterface
     public function setContent(?string $content): PostTest
     {
         $this->content = $content;
+        return $this;
+    }
+
+    public function getSlug(): ?string
+    {
+        return $this->slug;
+    }
+
+    public function setSlug(?string $slug): PostTest
+    {
+        $this->slug = $slug;
         return $this;
     }
 

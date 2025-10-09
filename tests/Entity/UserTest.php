@@ -11,6 +11,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\TimestampColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\TokenColumn;
 use PhpDevCommunity\PaperORM\Mapping\Entity;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
 use Test\PhpDevCommunity\PaperORM\Repository\PostTestRepository;
@@ -25,7 +26,7 @@ class UserTest implements EntityInterface
     private ?string $firstname = null;
 
     #[StringColumn]
-    private ?string $lastname    = null;
+    private ?string $lastname  = null;
 
     #[StringColumn]
     private ?string $email = null;
@@ -33,10 +34,13 @@ class UserTest implements EntityInterface
     #[StringColumn]
     private ?string $password = null;
 
+    #[TokenColumn(length: 32)]
+    private ?string $token = null;
+
     #[BoolColumn(name: 'is_active')]
     private bool $active = false;
 
-    #[TimestampColumn(name: 'created_at', onCreated: true)]
+    #[TimestampColumn( onCreated: true)]
     private ?\DateTimeInterface $createdAt = null;
 
     #[OneToMany(targetEntity: PostTest::class, mappedBy: 'user')]
@@ -70,8 +74,9 @@ class UserTest implements EntityInterface
             (new StringColumn())->bindProperty('lastname'),
             (new StringColumn())->bindProperty('email'),
             (new StringColumn())->bindProperty('password'),
+            (new TokenColumn(null, 32))->bindProperty('token'),
             (new BoolColumn( 'is_active'))->bindProperty('active'),
-            (new TimestampColumn( 'created_at', true))->bindProperty('createdAt'),
+            (new TimestampColumn( null, true))->bindProperty('createdAt'),
             (new OneToMany( PostTest::class,  'user'))->bindProperty('posts'),
             (new JoinColumn( 'last_post_id', PostTest::class, 'id', true, true, JoinColumn::SET_NULL))->bindProperty('lastPost'),
         ];
@@ -134,6 +139,17 @@ class UserTest implements EntityInterface
     public function setPassword(?string $password): UserTest
     {
         $this->password = $password;
+        return $this;
+    }
+
+    public function getToken(): ?string
+    {
+        return $this->token;
+    }
+
+    public function setToken(?string $token): UserTest
+    {
+        $this->token = $token;
         return $this;
     }
 

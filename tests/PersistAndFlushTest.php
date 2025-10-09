@@ -4,8 +4,12 @@ namespace Test\PhpDevCommunity\PaperORM;
 
 use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\Expression\Expr;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
+use PhpDevCommunity\PaperORM\Tools\IDBuilder;
 use PhpDevCommunity\UniTester\TestCase;
+use Test\PhpDevCommunity\PaperORM\Entity\CommentTest;
+use Test\PhpDevCommunity\PaperORM\Entity\InvoiceTest;
 use Test\PhpDevCommunity\PaperORM\Entity\PostTest;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
 use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
@@ -25,7 +29,7 @@ class PersistAndFlushTest extends TestCase
     protected function execute(): void
     {
         foreach (DataBaseHelperTest::drivers() as  $params) {
-            $em = new EntityManager($params);
+            $em = EntityManager::createFromConfig(PaperConfiguration::fromArray($params));
             DataBaseHelperTest::init($em);
             $this->testInsert($em);
             $this->testInsertAndUpdate($em);
@@ -42,6 +46,7 @@ class PersistAndFlushTest extends TestCase
     {
         $user = new UserTest();
         $this->assertNull($user->getId());
+        $this->assertNull($user->getToken());
         $user->setFirstname('John');
         $user->setLastname('Doe');
         $user->setPassword('secret');
@@ -50,16 +55,92 @@ class PersistAndFlushTest extends TestCase
         $em->persist($user);
         $em->flush();
 
+        $this->assertStringLength($user->getToken(), 32);
         $this->assertNotNull($user->getId());
         $this->assertInstanceOf(\DateTimeInterface::class, $user->getCreatedAt());
         $this->assertInstanceOf(\DateTimeInterface::class, $user->getCreatedAt());
         $em->clear();
+
+        $post = new PostTest();
+        $post->setUser($user);
+        $post->setTitle('Hello World !, it\'s me');
+        $post->setContent('Hello World !');
+        $this->assertNull($post->getSlug());
+        $em->persist($post);
+        $em->flush();
+
+        $this->assertStrictEquals('hello-world-it-s-me', $post->getSlug());
+        $em->clear();
+
+
+        $post = new PostTest();
+        $post->setUser($user);
+        $post->setTitle('Hello World !, it\'s me');
+        $post->setContent('Hello World !');
+        $post->setSlug('my-slug');
+        $em->persist($post);
+        $em->flush();
+
+        $this->assertStrictEquals('my-slug', $post->getSlug());
+        $em->clear();
+
+        $comment = new CommentTest();
+        $this->assertNull($comment->getUuid());
+        $comment->setPost($post);
+        $comment->setBody("my comment");
+        $em->persist($comment);
+        $em->flush();
+        $this->assertNotNull($comment->getUuid());
+
+        $uuid = $comment->getUuid();
+        $em->clear();
+
+        $comment = $em->getRepository(CommentTest::class)
+            ->findOneBy(['uuid' => $uuid])
+            ->with('post.user')
+            ->toReadOnlyObject()
+        ;
+        $this->assertNotNull($comment);
+        $this->assertEquals($uuid, $comment->getUuid());
+        $this->assertInstanceOf(CommentTest::class, $comment);
+        $this->assertNotNull($comment->getUuid());
+        $this->assertNotNull($comment->getPost());
+        $this->assertInstanceOf(PostTest::class, $comment->getPost());
+        $this->assertNotNull($comment->getPost()->getId());
+        $this->assertNotNull($comment->getPost()->getUser());
+        $this->assertInstanceOf(UserTest::class, $comment->getPost()->getUser());
+        $this->assertNotNull($comment->getPost()->getUser()->getId());
+
+        $keyNumber = 'invoice.number.'.IDBuilder::generate('INV-{YYYY}-');
+        $keyCode = 'invoice.code';
+        $em->sequence()->reset($keyNumber);
+        $em->sequence()->reset($keyCode);
+        $em->sequence()->increment($keyCode);
+
+        for ($i = 0; $i < 10; $i++) {
+            $peekNumber = $em->sequence()->peek($keyNumber);
+            $peekCode = $em->sequence()->peek($keyCode);
+            $invoice = new InvoiceTest();
+            $this->assertEmpty($invoice->getCode());
+            $this->assertEmpty($invoice->getNumber());
+            $em->persist($invoice);
+            $em->flush();
+            $this->assertNotEmpty($invoice->getCode());
+            $this->assertNotEmpty($invoice->getNumber());
+            $this->assertEquals($em->sequence()->peek($keyNumber), $peekNumber + 1);
+            $this->assertEquals($em->sequence()->peek($keyCode), $peekCode + 1);
+        }
+
+        $this->assertEquals(11, $em->sequence()->peek($keyNumber));
+        $this->assertEquals(12, $em->sequence()->peek($keyCode));
+
     }
 
 
     private function testInsertAndUpdate(EntityManager $em): void
     {
         $user = new UserTest();
+        $this->assertNull($user->getToken());
         $user->setFirstname('John');
         $user->setLastname('Doe');
         $user->setPassword('secret');
@@ -67,12 +148,17 @@ class PersistAndFlushTest extends TestCase
         $user->setActive(true);
         $em->persist($user);
         $em->flush();
+
+        $token = $user->getToken();
+        $this->assertNotNull($token);
         $this->assertNotNull($user->getId());
         $this->assertInstanceOf(\DateTimeInterface::class, $user->getCreatedAt());
         $user->setLastname('TOTO');
         $em->persist($user);
         $em->flush();
         $em->clear();
+
+        $this->assertEquals($token, $user->getToken());
     }
 
     private function testUpdate(EntityManager $em): void

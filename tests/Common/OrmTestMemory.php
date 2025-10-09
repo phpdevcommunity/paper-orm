@@ -3,6 +3,7 @@
 namespace Test\PhpDevCommunity\PaperORM\Common;
 
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
 use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
@@ -23,7 +24,7 @@ class OrmTestMemory extends TestCase
     protected function execute(): void
     {
         foreach (DataBaseHelperTest::drivers() as  $params) {
-            $em = new EntityManager($params);
+            $em = EntityManager::createFromConfig(PaperConfiguration::fromArray($params));
             DataBaseHelperTest::init($em, 1000, false);
             $memory = memory_get_usage();
             $users = $em->getRepository(UserTest::class)

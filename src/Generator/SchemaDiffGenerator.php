@@ -38,14 +38,14 @@ final class SchemaDiffGenerator
             }
         }
 
-        list( $sqlUp, $sqlDown) = $this->createTables($tables, $schema, $tablesExist);
+        list( $sqlUp, $sqlDown) = $this->diff($tables, $schema, $tablesExist);
         return [
             'up' => $sqlUp,
             'down' => $sqlDown
         ];
     }
 
-    private function createTables(array $tables,SchemaInterface $schema, array $tablesExist): array
+    private function diff(array $tables, SchemaInterface $schema, array $tablesExist): array
     {
         $sqlUp = [];
         $sqlDown = [];

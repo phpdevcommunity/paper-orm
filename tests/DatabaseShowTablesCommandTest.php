@@ -13,6 +13,7 @@ use PhpDevCommunity\PaperORM\Mapping\Column\IntColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Entity\UserTest;
 use Test\PhpDevCommunity\PaperORM\Helper\DataBaseHelperTest;
@@ -32,7 +33,7 @@ class DatabaseShowTablesCommandTest extends TestCase
     protected function execute(): void
     {
         foreach (DataBaseHelperTest::drivers() as $params) {
-            $em = new EntityManager($params);
+            $em = EntityManager::createFromConfig(PaperConfiguration::fromArray($params));
             $this->executeTest($em);
             $em->getConnection()->close();
         }

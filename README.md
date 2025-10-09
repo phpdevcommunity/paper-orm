@@ -21,7 +21,7 @@ PaperORM is available via **Composer** and installs in seconds.
 
 ### 📦 Via Composer (recommended)
 ```bash
-composer require phpdevcommunity/paper-orm:1.0.11-alpha
+composer require phpdevcommunity/paper-orm:1.0.14-alpha
 ```  
 
 ### 🔧 Minimal Configuration
@@ -32,16 +32,18 @@ Create a simple configuration file to connect PaperORM to your database:
 require_once 'vendor/autoload.php';
 
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 
-// Basic configuration SQLite
-$entityManager = new EntityManager([
-            'driver' => 'sqlite',
-            'user' => null,
-            'password' => null,
-            'memory' => true,
-]);
+// --- Basic SQLite configuration ---
+$configuration = PaperConfiguration::fromArray([
+    'driver' => 'sqlite',
+    'user' => null,
+    'password' => null,
+    'memory' => true
+], false); // Set to true to enable debug mode (logs queries and ORM operations)
+
 // Basic configuration MySQL/Mariadb
-$entityManager = new EntityManager([
+$configuration = PaperConfiguration::fromArray([
             'driver' => 'mariadb',
             'host' => '127.0.0.1',
             'port' => 3306,
@@ -49,7 +51,17 @@ $entityManager = new EntityManager([
             'user' => 'root',
             'password' => 'root',
             'charset' => 'utf8mb4',
-]);
+], false);  // Set to true to enable debug mode (logs queries and ORM operations)
+
+// --- Optional event listener registration ---
+// Called automatically before any entity creation
+$configuration->withListener(PreCreateEvent::class, new App\Listener\PreCreateListener());
+
+// --- Optional SQL logger ---
+// Use any PSR-3 compatible logger (e.g. Monolog) to log all executed queries
+$configuration->withLogger(new Monolog());
+
+$em = EntityManager::createFromConfig($configuration);
 ```
 
 ✅ **PaperORM is now ready to use!**
@@ -245,7 +257,7 @@ PaperORM est disponible via **Composer** et s'installe en quelques secondes.
 
 ### 📦 Via Composer (recommandé)
 ```bash
-composer require phpdevcommunity/paper-orm:1.0.11-alpha
+composer require phpdevcommunity/paper-orm:1.0.14-alpha
 ```  
 
 ### 🔧 Configuration minimale
@@ -256,16 +268,18 @@ Créez un fichier de configuration simple pour connecter PaperORM à votre base 
 require_once 'vendor/autoload.php';
 
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 
-// Basic configuration SQLite
-$entityManager = new EntityManager([
-            'driver' => 'sqlite',
-            'user' => null,
-            'password' => null,
-            'memory' => true,
-]);
+// --- Basic SQLite configuration ---
+$configuration = PaperConfiguration::fromArray([
+    'driver' => 'sqlite',
+    'user' => null,
+    'password' => null,
+    'memory' => true
+], false); // Mettre à true pour activer le mode debug (journalisation des requêtes et opérations ORM)
+
 // Basic configuration MySQL/Mariadb
-$entityManager = new EntityManager([
+$configuration = PaperConfiguration::fromArray([
             'driver' => 'mariadb',
             'host' => '127.0.0.1',
             'port' => 3306,
@@ -273,7 +287,17 @@ $entityManager = new EntityManager([
             'user' => 'root',
             'password' => 'root',
             'charset' => 'utf8mb4',
-]);
+], false);  // Set to true to enable debug mode (logs queries and ORM operations)
+
+// --- Enregistrement optionnel d’un écouteur d’événement ---
+// Appelé automatiquement avant chaque création d’entité
+$configuration->withListener(PreCreateEvent::class, new App\Listener\PreCreateListener());
+
+// --- Journalisation SQL optionnelle ---
+// Permet de journaliser toutes les requêtes exécutées via un logger compatible PSR-3 (ex. Monolog
+$configuration->withLogger(new Monolog());
+
+$em = EntityManager::createFromConfig($configuration);
 ```
 
 ✅ **PaperORM est maintenant prêt à être utilisé !**  

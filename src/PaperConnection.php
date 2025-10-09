@@ -27,18 +27,6 @@ final class PaperConnection
         $this->driver = $driver;
         $extra = $params['extra'] ?? [];
         $this->debug = (bool)($extra['debug'] ?? false);
-
-        if (array_key_exists('logger', $extra)) {
-            $logger = $extra['logger'];
-            if (!$logger instanceof LoggerInterface) {
-                $given = is_object($logger) ? get_class($logger) : gettype($logger);
-                throw new LogicException(sprintf(
-                    'The logger must be an instance of Psr\Log\LoggerInterface, %s given.',
-                    $given
-                ));
-            }
-            $this->logger = $logger;
-        }
     }
 
 
@@ -119,7 +107,6 @@ final class PaperConnection
         $this->pdo = null;
     }
 
-
     public function cloneConnectionWithoutDbname(): self
     {
         $params = $this->params;
@@ -127,4 +114,9 @@ final class PaperConnection
         return new self($this->driver, $params);
     }
 
+    public function withLogger(LoggerInterface $logger): self
+    {
+        $this->logger = $logger;
+        return $this;
+    }
 }

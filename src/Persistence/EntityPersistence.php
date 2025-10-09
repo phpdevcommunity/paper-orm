@@ -3,6 +3,8 @@
 namespace PhpDevCommunity\PaperORM\Persistence;
 
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\EntityManagerInterface;
+use PhpDevCommunity\PaperORM\Event\PostCreateEvent;
 use PhpDevCommunity\PaperORM\Event\PreCreateEvent;
 use PhpDevCommunity\PaperORM\Event\PreUpdateEvent;
 use PhpDevCommunity\PaperORM\Hydrator\ReadOnlyEntityHydrator;
@@ -16,13 +18,16 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 
 class EntityPersistence
 {
+    private EntityManagerInterface $em;
+
     private PlatformInterface $platform;
     private \SplObjectStorage $managed;
 
     private ?EventDispatcherInterface $dispatcher;
-    public function __construct(PlatformInterface $platform, EventDispatcherInterface $dispatcher = null)
+    public function __construct(EntityManagerInterface $em, EventDispatcherInterface $dispatcher = null)
     {
-        $this->platform = $platform;
+        $this->em = $em;
+        $this->platform = $em->getPlatform();
         $this->dispatcher = $dispatcher;
         $this->managed = new \SplObjectStorage();
     }
@@ -42,7 +47,7 @@ class EntityPersistence
         }
 
         if ($this->dispatcher) {
-            $this->dispatcher->dispatch(new PreCreateEvent($entity));
+            $this->dispatcher->dispatch(new PreCreateEvent($this->em, $entity));
         }
         $schema = $this->platform->getSchema();
         $tableName = EntityMapper::getTable($entity);
@@ -60,6 +65,9 @@ class EntityPersistence
             $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entity);
             (new ReadOnlyEntityHydrator())->hydrate($entity, [$primaryKeyColumn => $lastInsertId]);
             $this->managed->attach($entity);
+            if ($this->dispatcher) {
+                $this->dispatcher->dispatch(new PostCreateEvent($this->em, $entity));
+            }
         }
         return $rows;
     }

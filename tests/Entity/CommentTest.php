@@ -7,6 +7,7 @@ use PhpDevCommunity\PaperORM\Entity\TableMetadataInterface;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\UuidColumn;
 use PhpDevCommunity\PaperORM\Mapping\Entity;
 use Test\PhpDevCommunity\PaperORM\Repository\TagTestRepository;
 
@@ -16,6 +17,7 @@ class CommentTest implements EntityInterface, TableMetadataInterface
 
     private ?int $id = null;
     private ?string $body = null;
+    private ?string $uuid = null;
     private ?PostTest $post = null;
 
     static public function getTableName(): string
@@ -33,6 +35,7 @@ class CommentTest implements EntityInterface, TableMetadataInterface
         return [
             (new PrimaryKeyColumn())->bindProperty('id'),
             (new StringColumn())->bindProperty('body'),
+            (new UuidColumn())->bindProperty('uuid'),
             (new JoinColumn('post_id', PostTest::class))->bindProperty('post'),
         ];
     }
@@ -57,6 +60,18 @@ class CommentTest implements EntityInterface, TableMetadataInterface
         $this->body = $body;
         return $this;
     }
+
+    public function getUuid(): ?string
+    {
+        return $this->uuid;
+    }
+
+    public function setUuid(?string $uuid): CommentTest
+    {
+        $this->uuid = $uuid;
+        return $this;
+    }
+
 
     public function getPost(): ?PostTest
     {

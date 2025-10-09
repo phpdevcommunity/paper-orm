@@ -19,8 +19,4 @@ final class StringColumn extends Column
         parent::__construct('', $name, StringType::class, $nullable, $defaultValue, $unique, $length);
     }
 
-    public function getLength(): int
-    {
-        return intval($this->getFirstArgument());
-    }
 }

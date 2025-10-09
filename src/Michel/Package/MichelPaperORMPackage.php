@@ -2,8 +2,8 @@
 
 namespace PhpDevCommunity\PaperORM\Michel\Package;
 
-use LogicException;
 use PhpDevCommunity\Michel\Package\PackageInterface;
+use PhpDevCommunity\PaperORM\Collector\EntityDirCollector;
 use PhpDevCommunity\PaperORM\Command\DatabaseCreateCommand;
 use PhpDevCommunity\PaperORM\Command\DatabaseDropCommand;
 use PhpDevCommunity\PaperORM\Command\DatabaseSyncCommand;
@@ -14,6 +14,7 @@ use PhpDevCommunity\PaperORM\Command\ShowTablesCommand;
 use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 use Psr\Container\ContainerInterface;
 
 class MichelPaperORMPackage implements PackageInterface
@@ -21,16 +22,21 @@ class MichelPaperORMPackage implements PackageInterface
     public function getDefinitions(): array
     {
         return [
+            PaperConfiguration::class => static function (ContainerInterface $container) {
+                return PaperConfiguration::fromDsn(
+                    $container->get('paper.orm.dsn'),
+                    $container->get('paper.orm.debug')
+                )
+                    ->withLogger($container->get('paper.orm.logger'));
+            },
+            EntityDirCollector::class => static function (ContainerInterface $container) {
+                return EntityDirCollector::bootstrap([$container->get('paper.entity_dir')]);
+            },
             EntityManagerInterface::class => static function (ContainerInterface $container) {
                 return $container->get(EntityManager::class);
             },
             EntityManager::class => static function (ContainerInterface $container) {
-                return EntityManager::createFromDsn(
-                    $container->get('paper.orm.dsn'),
-                    $container->get('paper.orm.debug'),
-                    $container->get('paper.orm.logger'),
-                    []
-                );
+                return EntityManager::createFromConfig($container->get(PaperConfiguration::class));
             },
             PaperMigration::class => static function (ContainerInterface $container) {
                 return PaperMigration::create(
@@ -40,10 +46,13 @@ class MichelPaperORMPackage implements PackageInterface
                 );
             },
             MigrationDiffCommand::class => static function (ContainerInterface $container) {
-                return new MigrationDiffCommand($container->get(PaperMigration::class), $container->get('paper.entity_dir'));
+                return new MigrationDiffCommand($container->get(PaperMigration::class), $container->get(EntityDirCollector::class));
             },
             DatabaseDropCommand::class => static function (ContainerInterface $container) {
                 return new DatabaseDropCommand($container->get(EntityManagerInterface::class), $container->get('michel.environment'));
+            },
+            DatabaseSyncCommand::class => static function (ContainerInterface $container) {
+                return new DatabaseSyncCommand($container->get(PaperMigration::class), $container->get(EntityDirCollector::class), $container->get('michel.environment'));
             }
         ];
     }
@@ -70,7 +79,7 @@ class MichelPaperORMPackage implements PackageInterface
                 }
                 return $folder;
             },
-            'paper.orm.migrations_table' => getenv('PAPER_ORM_MIGRATIONS_TABLE') ?: 'mig_versions',
+            'paper.orm.migrations_table' => getenv('PAPER_ORM_MIGRATIONS_TABLE') ?: 'paper_mig_version',
         ];
     }
 

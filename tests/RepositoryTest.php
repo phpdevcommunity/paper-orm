@@ -3,6 +3,7 @@
 namespace Test\PhpDevCommunity\PaperORM;
 
 use PhpDevCommunity\PaperORM\EntityManager;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
 use PhpDevCommunity\UniTester\TestCase;
 use Test\PhpDevCommunity\PaperORM\Entity\PostTest;
@@ -23,7 +24,7 @@ class RepositoryTest extends TestCase
     protected function execute(): void
     {
         foreach (DataBaseHelperTest::drivers() as $params) {
-            $em = new EntityManager($params);
+            $em = EntityManager::createFromConfig(PaperConfiguration::fromArray($params));
             DataBaseHelperTest::init($em);
             $this->testSelectWithoutJoin($em);
             $this->testSelectWithoutProxy($em);

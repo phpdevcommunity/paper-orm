@@ -18,14 +18,12 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 abstract class Repository
 {
     private EntityManagerInterface $em;
-    private PlatformInterface $platform;
     private EntityPersistence $ep;
 
     public function __construct(EntityManagerInterface $em, EventDispatcherInterface $dispatcher = null)
     {
         $this->em = $em;
-        $this->platform = $em->getPlatform();
-        $this->ep = new EntityPersistence($this->platform, $dispatcher);
+        $this->ep = new EntityPersistence($em, $dispatcher);
     }
 
     /**

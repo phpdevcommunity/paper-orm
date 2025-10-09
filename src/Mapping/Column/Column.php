@@ -3,6 +3,7 @@
 namespace PhpDevCommunity\PaperORM\Mapping\Column;
 
 use PhpDevCommunity\PaperORM\Mapping\Index;
+use PhpDevCommunity\PaperORM\Tools\NamingStrategy;
 use PhpDevCommunity\PaperORM\Types\StringType;
 use PhpDevCommunity\PaperORM\Types\Type;
 use PhpDevCommunity\PaperORM\Types\TypeFactory;
@@ -34,6 +35,14 @@ abstract class Column
         if (empty($property) && !empty($name)) {
             $property = $name;
         }
+
+        if (!empty($name) && !preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Invalid column name "%s": only alphanumeric characters and underscores are allowed.',
+                $name
+            ));
+        }
+
         $this->property = $property;
         $this->name = $name;
         $this->type = $type;
@@ -66,7 +75,7 @@ abstract class Column
     final public function getName(): ?string
     {
         $property = $this->getProperty();
-        return $this->name ?: $property;
+        return $this->name ?:  NamingStrategy::toSnakeCase($property);
     }
 
 

@@ -4,24 +4,45 @@ namespace PhpDevCommunity\PaperORM\Tools;
 
 use PhpDevCommunity\FileSystem\Tools\FileExplorer;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\Entity\SystemEntityInterface;
 
 final class EntityExplorer
 {
 
+    /**
+     * @param string[] $dirs
+     * @return array{normal: string[], system: string[]}
+     */
     public static function getEntities(array $dirs): array
     {
-        $entities = [];
+        $normal = [];
+        $system = [];
+
         foreach ($dirs as $dir) {
             $explorer = new FileExplorer($dir);
             $files = $explorer->searchByExtension('php', true);
+
             foreach ($files as $file) {
                 $entityClass = self::extractNamespaceAndClass($file['path']);
-                if ($entityClass !== null && class_exists($entityClass) && is_subclass_of($entityClass, EntityInterface::class)) {
-                    $entities[$file['path']] = $entityClass;
+                if ($entityClass === null || !class_exists($entityClass)) {
+                    continue;
+                }
+                if (!is_subclass_of($entityClass, EntityInterface::class)) {
+                    continue;
+                }
+
+                if (is_subclass_of($entityClass, SystemEntityInterface::class)) {
+                    $system[$file['path']] = $entityClass;
+                } else {
+                    $normal[$file['path']] = $entityClass;
                 }
             }
         }
-        return $entities;
+
+        return [
+            'normal' => $normal,
+            'system' => $system,
+        ];
     }
 
     private static function extractNamespaceAndClass(string $filePath): ?string

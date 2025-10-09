@@ -4,6 +4,8 @@ namespace PhpDevCommunity\PaperORM\Platform;
 
 use InvalidArgumentException;
 use LogicException;
+use PhpDevCommunity\PaperORM\Mapping\Column\AnyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\AutoIncrementColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\BinaryColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\BoolColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
@@ -15,9 +17,12 @@ use PhpDevCommunity\PaperORM\Mapping\Column\IntColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JsonColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\SlugColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\TextColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\TimestampColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\TokenColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\UuidColumn;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\ForeignKeyMetadata;
 use PhpDevCommunity\PaperORM\Metadata\IndexMetadata;
@@ -273,10 +278,30 @@ class MariaDBPlatform extends AbstractPlatform
                 'type' => 'VARCHAR',
                 'args' => [255]
             ],
+            SlugColumn::class => [
+                'type' => 'VARCHAR',
+                'args' => [128]
+            ],
             BinaryColumn::class => [
                 'type' => 'BLOB',
                 'args' => []
             ],
+            AnyColumn::class => [
+                'type' => 'VARCHAR',
+                'args' => [150],
+            ],
+            UuidColumn::class => [
+                'type' => 'VARCHAR',
+                'args' => [36],
+            ],
+            AutoIncrementColumn::class => [
+                'type' => 'VARCHAR',
+                'args' => [150],
+            ],
+            TokenColumn::class => [
+                'type' => 'VARCHAR',
+                'args' => [128],
+            ]
         ];
     }
 

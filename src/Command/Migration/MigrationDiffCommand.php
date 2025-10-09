@@ -2,25 +2,26 @@
 
 namespace PhpDevCommunity\PaperORM\Command\Migration;
 
+use LogicException;
 use PhpDevCommunity\Console\Command\CommandInterface;
 use PhpDevCommunity\Console\InputInterface;
-use PhpDevCommunity\Console\Option\CommandOption;
 use PhpDevCommunity\Console\Output\ConsoleOutput;
 use PhpDevCommunity\Console\OutputInterface;
-use PhpDevCommunity\FileSystem\Tools\FileExplorer;
-use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\Collector\EntityDirCollector;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
 use PhpDevCommunity\PaperORM\Tools\EntityExplorer;
+use SplFileObject;
 
 class MigrationDiffCommand implements CommandInterface
 {
     private PaperMigration $paperMigration;
-    private ?string $defaultEntitiesDir;
 
-    public function __construct(PaperMigration $paperMigration, ?string $defaultEntitiesDir = null)
+    private EntityDirCollector $entityDirCollector;
+
+    public function __construct(PaperMigration $paperMigration, EntityDirCollector $entityDirCollector)
     {
         $this->paperMigration = $paperMigration;
-        $this->defaultEntitiesDir = $defaultEntitiesDir;
+        $this->entityDirCollector = $entityDirCollector;
     }
 
     public function getName(): string
@@ -36,7 +37,6 @@ class MigrationDiffCommand implements CommandInterface
     public function getOptions(): array
     {
         return [
-            new CommandOption('entities-dir', null, 'The directory where the entities are', false)
         ];
     }
 
@@ -48,46 +48,72 @@ class MigrationDiffCommand implements CommandInterface
     public function execute(InputInterface $input, OutputInterface $output): void
     {
         $io = ConsoleOutput::create($output);
+        $verbose = $input->getOptionValue('verbose');
 
-        $entitiesDir = $this->defaultEntitiesDir;
-        $printOutput = $input->getOptionValue('verbose');
-        if ($input->hasOption('entities-dir')) {
-            $entitiesDir = $input->getOptionValue('entities-dir');
-        }
+        if ($this->entityDirCollector->count() === 0) {
+            $suggested = getcwd() . '/src/Entity';
 
-        if ($entitiesDir === null) {
-            throw new \LogicException('The --entities-dir option is required');
+            throw new LogicException(sprintf(
+                "No entity directories registered in %s.\n" .
+                "You must register at least one directory when building the application.\n\n" .
+                "Example:\n" .
+                "    \$collector = new EntityDirCollector(['%s']);\n" .
+                "    \$command = new %s(\$paperMigration, \$collector);",
+                static::class,
+                $suggested,
+                static::class
+            ));
         }
 
         $platform = $this->paperMigration->getEntityManager()->getPlatform();
-
         $io->title('Starting migration diff on ' . $platform->getDatabaseName());
         $io->list([
             'Database : ' . $platform->getDatabaseName(),
-            'Entities directory : ' . $entitiesDir
+            'Entities directories : ' . implode(', ', $this->entityDirCollector->all())
         ]);
 
-        $entities = EntityExplorer::getEntities([$entitiesDir]);
-        $io->title('Number of entities detected: ' . count($entities));
-        $io->listKeyValues($entities);
-
-        $file = $this->paperMigration->generateMigrationFromEntities($entities);
-        if ($file === null) {
-            $io->info('No migration file was generated — all entities are already in sync with the database schema.');
-            return;
+        $entities = EntityExplorer::getEntities($this->entityDirCollector->all());
+        $normalEntities = $entities['normal'];
+        $systemEntities = $entities['system'];
+        $io->title('Detected entities');
+        $io->list([
+            'Normal entities : ' . count($normalEntities),
+            'System entities : ' . count($systemEntities),
+        ]);
+        if ($verbose) {
+            $io->listKeyValues(array_merge($normalEntities, $systemEntities));
         }
 
-        if ($printOutput === true) {
-            $splFile = new \SplFileObject($file);
-            $lines = [];
-            while (!$splFile->eof()) {
-                $lines[] = $splFile->fgets();
+        $fileApp = $this->paperMigration->generateMigrationFromEntities($normalEntities);
+        if ($fileApp === null) {
+            $io->info('No application migration file was generated — schema already in sync.');
+        } else {
+            $io->success('✔ Application migration file generated: ' . $fileApp);
+        }
+
+        $fileSystem = $this->paperMigration->generateMigrationFromEntities($systemEntities);
+        if ($fileSystem === null) {
+            $io->info('No system migration changes detected.');
+        } else {
+            $io->success('✔ System migration file generated: ' . $fileSystem);
+        }
+
+        if ($verbose === true) {
+            foreach ([$fileSystem, $fileApp] as $file) {
+                if ($file === null || !is_file($file)) {
+                    continue;
+                }
+
+                $io->title('Contents of: ' . basename($file));
+                $splFile = new SplFileObject($file);
+                $lines = [];
+                while (!$splFile->eof()) {
+                    $lines[] = $splFile->fgets();
+                }
+                unset($splFile);
+                $io->listKeyValues($lines);
             }
-            unset($splFile);
-            $io->listKeyValues($lines);
         }
-
-        $io->success('Migration file successfully generated: ' . $file);
+        $io->success('Migration diff process completed successfully.');
     }
-
 }

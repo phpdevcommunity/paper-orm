@@ -247,7 +247,6 @@ SQL;
     private function getConnection(): PaperConnection
     {
         return $this->em->getConnection();
-
     }
 
     private function executeQuery(string $query): bool

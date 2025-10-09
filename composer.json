@@ -23,6 +23,7 @@
     "ext-pdo": "*",
     "ext-json": "*",
     "ext-ctype": "*",
+    "ext-iconv": "*",
     "phpdevcommunity/relational-query": "^1.0",
     "phpdevcommunity/php-console": "^1.0",
     "phpdevcommunity/michel-package-starter": "^1.0",

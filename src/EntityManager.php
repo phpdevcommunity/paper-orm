@@ -3,25 +3,16 @@
 namespace PhpDevCommunity\PaperORM;
 
 use PhpDevCommunity\Listener\EventDispatcher;
-use PhpDevCommunity\Listener\ListenerProvider;
 use PhpDevCommunity\PaperORM\Cache\EntityMemcachedCache;
-use PhpDevCommunity\PaperORM\Driver\DriverManager;
-use PhpDevCommunity\PaperORM\Event\PreCreateEvent;
-use PhpDevCommunity\PaperORM\Event\PreUpdateEvent;
-use PhpDevCommunity\PaperORM\EventListener\CreatedAtListener;
-use PhpDevCommunity\PaperORM\EventListener\UpdatedAtListener;
+use PhpDevCommunity\PaperORM\Manager\PaperKeyValueManager;
+use PhpDevCommunity\PaperORM\Manager\PaperSequenceManager;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
-use PhpDevCommunity\PaperORM\Parser\DSNParser;
 use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
-use PhpDevCommunity\PaperORM\Proxy\ProxyFactory;
 use PhpDevCommunity\PaperORM\Repository\Repository;
 use Psr\EventDispatcher\EventDispatcherInterface;
-use Psr\EventDispatcher\ListenerProviderInterface;
-use Psr\Log\LoggerInterface;
 
 class EntityManager implements EntityManagerInterface
 {
-
     private PaperConnection $connection;
 
     private UnitOfWork $unitOfWork;
@@ -33,44 +24,23 @@ class EntityManager implements EntityManagerInterface
 
     private EntityMemcachedCache $cache;
 
-    private ListenerProviderInterface $listener;
     private EventDispatcherInterface $dispatcher;
     private ?PlatformInterface $platform = null;
+    private PaperKeyValueManager $keyValueManager;
+    private PaperSequenceManager $sequenceManager;
 
-    public static function createFromDsn(string $dsn, bool $debug = false, LoggerInterface $logger = null, array $listeners = []): self
+    public static function createFromConfig(PaperConfiguration $config): self
     {
-        if (empty($dsn)) {
-            throw new \LogicException('Cannot create an EntityManager from an empty DSN.');
-        }
-        $params = DSNParser::parse($dsn);
-        $params['extra']['debug'] = $debug;
-        if ($logger !== null) {
-            $params['extra']['logger'] = $logger;
-        }
-        $params['extra']['listeners'] = $listeners;
-        return new self($params);
+        return new self($config);
     }
-
-    public function __construct(array $config = [])
+    private function __construct(PaperConfiguration $config)
     {
-        if (!isset($config['driver'])) {
-            throw new \InvalidArgumentException('Missing "driver" in EntityManager configuration.');
-        }
-
-        $this->connection = DriverManager::createConnection($config['driver'], $config);
-        $this->unitOfWork = new UnitOfWork();
-        $this->cache = new EntityMemcachedCache();
-        $this->listener = (new ListenerProvider())
-            ->addListener(PreCreateEvent::class, new CreatedAtListener())
-            ->addListener(PreUpdateEvent::class, new UpdatedAtListener());
-
-        $listeners = $config['extra']['listeners'] ?? [];
-        foreach ((array) $listeners as $event => $listener) {
-            foreach ((array) $listener as $l) {
-                $this->addEventListener($event, $l);
-            }
-        }
-        $this->dispatcher = new EventDispatcher($this->listener);
+        $this->connection = $config->getConnection();
+        $this->unitOfWork = $config->getUnitOfWork();
+        $this->cache = $config->getCache();
+        $this->dispatcher = new EventDispatcher($config->getListeners());
+        $this->keyValueManager = new PaperKeyValueManager($this);
+        $this->sequenceManager = new PaperSequenceManager($this->keyValueManager);
     }
 
     public function persist(object $entity): void
@@ -83,43 +53,67 @@ class EntityManager implements EntityManagerInterface
         $this->unitOfWork->remove($entity);
     }
 
-    public function flush(): void
+    public function flush(object $entity = null ): void
     {
-        foreach ($this->unitOfWork->getEntityInsertions() as &$entity) {
-            $repository = $this->getRepository(get_class($entity));
-            $repository->insert($entity);
-            $this->unitOfWork->unsetEntity($entity);
+        foreach ($this->unitOfWork->getEntityInsertions() as &$entityToInsert) {
+            if ($entity && $entity !== $entityToInsert) {
+                continue;
+            }
+            $repository = $this->getRepository(get_class($entityToInsert));
+            $repository->insert($entityToInsert);
+            $this->unitOfWork->unsetEntity($entityToInsert);
         }
 
         foreach ($this->unitOfWork->getEntityUpdates() as $entityToUpdate) {
+            if ($entity && $entity !== $entityToUpdate) {
+                continue;
+            }
             $repository = $this->getRepository(get_class($entityToUpdate));
             $repository->update($entityToUpdate);
             $this->unitOfWork->unsetEntity($entityToUpdate);
         }
 
         foreach ($this->unitOfWork->getEntityDeletions() as $entityToDelete) {
+            if ($entity && $entity !== $entityToDelete) {
+                continue;
+            }
             $repository = $this->getRepository(get_class($entityToDelete));
             $repository->delete($entityToDelete);
             $this->unitOfWork->unsetEntity($entityToDelete);
         }
 
+        if ($entity) {
+            $this->unitOfWork->unsetEntity($entity);
+            return;
+        }
         $this->unitOfWork->clear();
+    }
+
+    public function registry(): PaperKeyValueManager
+    {
+        return $this->keyValueManager;
+    }
+
+    public function sequence(): PaperSequenceManager
+    {
+        return $this->sequenceManager;
     }
 
     public function getRepository(string $entity): Repository
     {
         $repositoryName = EntityMapper::getRepositoryName($entity);
         if ($repositoryName === null) {
-            $repositoryName = 'ProxyRepository'.$entity;
+            $repositoryName = 'ProxyRepository' . $entity;
         }
 
         $dispatcher = $this->dispatcher;
         if (!isset($this->repositories[$repositoryName])) {
             if (!class_exists($repositoryName)) {
-                $repository = new class($entity, $this, $dispatcher) extends Repository
-                {
+                $repository = new class($entity, $this, $dispatcher) extends Repository {
                     private string $entityName;
-                    public function __construct($entityName, EntityManager $em, EventDispatcherInterface $dispatcher = null)  {
+
+                    public function __construct($entityName, EntityManager $em, EventDispatcherInterface $dispatcher = null)
+                    {
                         $this->entityName = $entityName;
                         parent::__construct($em, $dispatcher);
                     }
@@ -129,13 +123,13 @@ class EntityManager implements EntityManagerInterface
                         return $this->entityName;
                     }
                 };
-            }else {
+            } else {
                 $repository = new $repositoryName($this, $dispatcher);
             }
             $this->repositories[$repositoryName] = $repository;
         }
 
-        return  $this->repositories[$repositoryName];
+        return $this->repositories[$repositoryName];
     }
 
 
@@ -162,12 +156,6 @@ class EntityManager implements EntityManagerInterface
     public function clear(): void
     {
         $this->getCache()->clear();
-    }
-
-    public function addEventListener(string $eventType, callable $callable): self
-    {
-        $this->listener->addListener($eventType, $callable);
-        return $this;
     }
 
 }

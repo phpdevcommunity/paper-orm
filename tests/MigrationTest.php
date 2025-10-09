@@ -9,6 +9,7 @@ use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\IntColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\StringColumn;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
+use PhpDevCommunity\PaperORM\PaperConfiguration;
 use PhpDevCommunity\UniTester\TestCase;
 use RuntimeException;
 use Test\PhpDevCommunity\PaperORM\Entity\PostTest;
@@ -34,7 +35,7 @@ class MigrationTest extends TestCase
     protected function execute(): void
     {
         foreach (DataBaseHelperTest::drivers() as $params) {
-            $em = new EntityManager($params);
+            $em = EntityManager::createFromConfig(PaperConfiguration::fromArray($params));
             $paperMigration = PaperMigration::create($em, 'mig_versions', $this->migrationDir);
             $platform = $em->getPlatform();
             $platform->createDatabaseIfNotExists();
@@ -63,36 +64,45 @@ class MigrationTest extends TestCase
         switch (get_class($driver)) {
             case SqliteDriver::class:
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                $this->assertEquals($lines, array(
+
+                $this->assertEquals($lines, array (
                     0 => '-- UP MIGRATION --',
-                    1 => 'CREATE TABLE `user` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,`firstname` VARCHAR(255) NOT NULL,`lastname` VARCHAR(255) NOT NULL,`email` VARCHAR(255) NOT NULL,`password` VARCHAR(255) NOT NULL,`is_active` BOOLEAN NOT NULL,`created_at` DATETIME,`last_post_id` INTEGER,FOREIGN KEY (`last_post_id`) REFERENCES `post` (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
-                    2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON `user` (`last_post_id`);',
-                    3 => 'CREATE TABLE `post` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,`title` VARCHAR(255) NOT NULL,`content` VARCHAR(255) NOT NULL,`created_at` DATETIME NOT NULL,`user_id` INTEGER,FOREIGN KEY (`user_id`) REFERENCES `user` (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
-                    4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON `post` (`user_id`);',
-                    5 => '-- DOWN MIGRATION --',
-                    6 => 'DROP INDEX IX_8D93D6492D053F64;',
-                    7 => 'DROP TABLE `user`;',
-                    8 => 'DROP INDEX IX_5A8A6C8DA76ED395;',
-                    9 => 'DROP TABLE `post`;',
+                    1 => 'CREATE TABLE `user` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,`firstname` VARCHAR(255) NOT NULL,`lastname` VARCHAR(255) NOT NULL,`email` VARCHAR(255) NOT NULL,`password` VARCHAR(255) NOT NULL,`token` VARCHAR(32) NOT NULL,`is_active` BOOLEAN NOT NULL,`created_at` DATETIME,`last_post_id` INTEGER,FOREIGN KEY (`last_post_id`) REFERENCES `post` (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
+                    2 => 'CREATE UNIQUE INDEX IX_8D93D6495F37A13B ON `user` (`token`);',
+                    3 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON `user` (`last_post_id`);',
+                    4 => 'CREATE TABLE `post` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,`title` VARCHAR(255) NOT NULL,`content` VARCHAR(255) NOT NULL,`slug` VARCHAR(128) NOT NULL,`created_at` DATETIME NOT NULL,`user_id` INTEGER,FOREIGN KEY (`user_id`) REFERENCES `user` (id) ON DELETE SET NULL ON UPDATE NO ACTION);',
+                    5 => 'CREATE UNIQUE INDEX IX_5A8A6C8D989D9B62 ON `post` (`slug`);',
+                    6 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON `post` (`user_id`);',
+                    7 => '-- DOWN MIGRATION --',
+                    8 => 'DROP INDEX IX_8D93D6495F37A13B;',
+                    9 => 'DROP INDEX IX_8D93D6492D053F64;',
+                    10 => 'DROP TABLE `user`;',
+                    11 => 'DROP INDEX IX_5A8A6C8D989D9B62;',
+                    12 => 'DROP INDEX IX_5A8A6C8DA76ED395;',
+                    13 => 'DROP TABLE `post`;',
                 ));
                 break;
             case MariaDBDriver::class:
                 $lines = file($migrationFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-                $this->assertEquals($lines, array(
+                $this->assertEquals($lines, array (
                     0 => '-- UP MIGRATION --',
-                    1 => 'CREATE TABLE `user` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,`firstname` VARCHAR(255) NOT NULL,`lastname` VARCHAR(255) NOT NULL,`email` VARCHAR(255) NOT NULL,`password` VARCHAR(255) NOT NULL,`is_active` TINYINT(1) NOT NULL,`created_at` DATETIME DEFAULT NULL,`last_post_id` INT(11) DEFAULT NULL);',
-                    2 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON `user` (`last_post_id`);',
-                    3 => 'CREATE TABLE `post` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,`title` VARCHAR(255) NOT NULL,`content` VARCHAR(255) NOT NULL,`created_at` DATETIME NOT NULL,`user_id` INT(11) DEFAULT NULL);',
-                    4 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON `post` (`user_id`);',
-                    5 => 'ALTER TABLE `user` ADD CONSTRAINT FK_8D93D6492D053F64 FOREIGN KEY (`last_post_id`) REFERENCES `post`(`id`) ON DELETE SET NULL ON UPDATE NO ACTION;',
-                    6 => 'ALTER TABLE `post` ADD CONSTRAINT FK_5A8A6C8DA76ED395 FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE SET NULL ON UPDATE NO ACTION;',
-                    7 => '-- DOWN MIGRATION --',
-                    8 => 'ALTER TABLE `user` DROP FOREIGN KEY FK_8D93D6492D053F64;',
-                    9 => 'ALTER TABLE `post` DROP FOREIGN KEY FK_5A8A6C8DA76ED395;',
-                    10 => 'DROP INDEX IX_8D93D6492D053F64 ON `user`;',
-                    11 => 'DROP TABLE `user`;',
-                    12 => 'DROP INDEX IX_5A8A6C8DA76ED395 ON `post`;',
-                    13 => 'DROP TABLE `post`;',
+                    1 => 'CREATE TABLE `user` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,`firstname` VARCHAR(255) NOT NULL,`lastname` VARCHAR(255) NOT NULL,`email` VARCHAR(255) NOT NULL,`password` VARCHAR(255) NOT NULL,`token` VARCHAR(32) NOT NULL,`is_active` TINYINT(1) NOT NULL,`created_at` DATETIME DEFAULT NULL,`last_post_id` INT(11) DEFAULT NULL);',
+                    2 => 'CREATE UNIQUE INDEX IX_8D93D6495F37A13B ON `user` (`token`);',
+                    3 => 'CREATE UNIQUE INDEX IX_8D93D6492D053F64 ON `user` (`last_post_id`);',
+                    4 => 'CREATE TABLE `post` (`id` INT(11) AUTO_INCREMENT PRIMARY KEY NOT NULL,`title` VARCHAR(255) NOT NULL,`content` VARCHAR(255) NOT NULL,`slug` VARCHAR(128) NOT NULL,`created_at` DATETIME NOT NULL,`user_id` INT(11) DEFAULT NULL);',
+                    5 => 'CREATE UNIQUE INDEX IX_5A8A6C8D989D9B62 ON `post` (`slug`);',
+                    6 => 'CREATE INDEX IX_5A8A6C8DA76ED395 ON `post` (`user_id`);',
+                    7 => 'ALTER TABLE `user` ADD CONSTRAINT FK_8D93D6492D053F64 FOREIGN KEY (`last_post_id`) REFERENCES `post`(`id`) ON DELETE SET NULL ON UPDATE NO ACTION;',
+                    8 => 'ALTER TABLE `post` ADD CONSTRAINT FK_5A8A6C8DA76ED395 FOREIGN KEY (`user_id`) REFERENCES `user`(`id`) ON DELETE SET NULL ON UPDATE NO ACTION;',
+                    9 => '-- DOWN MIGRATION --',
+                    10 => 'ALTER TABLE `user` DROP FOREIGN KEY FK_8D93D6492D053F64;',
+                    11 => 'ALTER TABLE `post` DROP FOREIGN KEY FK_5A8A6C8DA76ED395;',
+                    12 => 'DROP INDEX IX_8D93D6495F37A13B ON `user`;',
+                    13 => 'DROP INDEX IX_8D93D6492D053F64 ON `user`;',
+                    14 => 'DROP TABLE `user`;',
+                    15 => 'DROP INDEX IX_5A8A6C8D989D9B62 ON `post`;',
+                    16 => 'DROP INDEX IX_5A8A6C8DA76ED395 ON `post`;',
+                    17 => 'DROP TABLE `post`;',
                 ));
                 break;
             default:

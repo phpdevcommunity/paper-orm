@@ -31,7 +31,7 @@ abstract class AbstractPlatform implements PlatformInterface
         $mappings = $this->getColumnTypeMappings();
         $className = get_class($column);
         if (!array_key_exists($className, $mappings)) {
-            throw new LogicException(sprintf("The column type '%s' is not supported.", $column->getType()));
+            throw new LogicException(sprintf("The column type '%s' is not supported.", $className));
         }
 
         $mapping = $mappings[$className];
