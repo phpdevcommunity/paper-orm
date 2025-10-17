@@ -6,11 +6,9 @@ use InvalidArgumentException;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Expression\Expr;
-use PhpDevCommunity\PaperORM\Hydrator\EntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Persistence\EntityPersistence;
-use PhpDevCommunity\PaperORM\Platform\PlatformInterface;
 use PhpDevCommunity\PaperORM\Query\Fetcher;
 use PhpDevCommunity\PaperORM\Query\QueryBuilder;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -57,12 +55,10 @@ abstract class Repository
             } elseif (is_null($value)) {
                 $expressions[] = Expr::isNull($key);
                 continue;
-            }
-            elseif (is_string($value) && strtoupper($value) === "!NULL") {
+            } elseif (is_string($value) && strtoupper($value) === "!NULL") {
                 $expressions[] = Expr::isNotNull($key);
                 continue;
-            }
-            elseif (!is_scalar($value)) {
+            } elseif (!is_scalar($value)) {
                 throw new InvalidArgumentException(
                     sprintf('Argument "%s" must be scalar, array, null or EntityInterface, %s given', $key, gettype($value))
                 );
@@ -101,9 +97,9 @@ abstract class Repository
         return $rows;
     }
 
-    public function qb(): QueryBuilder
+    public function qb(...$propertiesToSelect): QueryBuilder
     {
         $queryBuilder = new QueryBuilder($this->em);
-        return $queryBuilder->select($this->getEntityName());
+        return $queryBuilder->select($this->getEntityName(), $propertiesToSelect);
     }
 }

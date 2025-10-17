@@ -311,6 +311,7 @@ final class QueryBuilder
             $properties = ColumnMapper::getColumns($entityName);
         }
         $columns = $this->convertPropertiesToColumns($entityName, $properties);
+
         $primaryKey = ColumnMapper::getPrimaryKeyColumnName($entityName);
         $primaryKeyQuoted = $this->schema->quote($primaryKey);
         if (!in_array($primaryKeyQuoted, $columns)) {
