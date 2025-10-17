@@ -4,9 +4,12 @@ namespace PhpDevCommunity\PaperORM\Persistence;
 
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
-use PhpDevCommunity\PaperORM\Event\PostCreateEvent;
-use PhpDevCommunity\PaperORM\Event\PreCreateEvent;
-use PhpDevCommunity\PaperORM\Event\PreUpdateEvent;
+use PhpDevCommunity\PaperORM\Event\Create\PostCreateEvent;
+use PhpDevCommunity\PaperORM\Event\Create\PreCreateEvent;
+use PhpDevCommunity\PaperORM\Event\Delete\PostDeleteEvent;
+use PhpDevCommunity\PaperORM\Event\Delete\PreDeleteEvent;
+use PhpDevCommunity\PaperORM\Event\Update\PostUpdateEvent;
+use PhpDevCommunity\PaperORM\Event\Update\PreUpdateEvent;
 use PhpDevCommunity\PaperORM\Hydrator\ReadOnlyEntityHydrator;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
@@ -49,6 +52,7 @@ class EntityPersistence
         if ($this->dispatcher) {
             $this->dispatcher->dispatch(new PreCreateEvent($this->em, $entity));
         }
+
         $schema = $this->platform->getSchema();
         $tableName = EntityMapper::getTable($entity);
         $qb = QueryBuilder::insert($schema->quote($tableName));
@@ -89,7 +93,7 @@ class EntityPersistence
         }
 
         if ($this->dispatcher) {
-            $this->dispatcher->dispatch(new PreUpdateEvent($entity));
+            $this->dispatcher->dispatch(new PreUpdateEvent($this->em, $entity));
         }
 
         if ($entity instanceof ProxyInterface) {
@@ -114,8 +118,13 @@ class EntityPersistence
             $values[$key] = $value;
         }
         $rows = $this->execute($qb, $values);
-        if ($rows > 0 && $entity instanceof ProxyInterface) {
-            $entity->__reset();
+        if ($rows > 0) {
+            if ($entity instanceof ProxyInterface) {
+                $entity->__reset();
+            }
+            if ($this->dispatcher) {
+                $this->dispatcher->dispatch(new PostUpdateEvent($this->em, $entity));
+            }
         }
         return $rows;
     }
@@ -128,6 +137,10 @@ class EntityPersistence
         $this->checkEntity($entity, true);
         if ($entity->getPrimaryKeyValue() === null) {
             throw new \LogicException(static::class . sprintf(' Cannot delete an entity %s without a primary key ', get_class($entity)));
+        }
+
+        if ($this->dispatcher) {
+            $this->dispatcher->dispatch(new PreDeleteEvent($this->em, $entity));
         }
 
         $tableName = EntityMapper::getTable($entity);
@@ -144,6 +157,10 @@ class EntityPersistence
             }
             if ($this->managed->contains($entity)) {
                 $this->managed->detach($entity);
+            }
+
+            if ($this->dispatcher) {
+                $this->dispatcher->dispatch(new PostDeleteEvent($this->em, $entity));
             }
         }
         return $rows;

@@ -75,15 +75,35 @@ final class Fetcher
     {
         return $this->getResult(QueryBuilder::HYDRATE_ARRAY);
     }
+    public function toLazyArray(): callable
+    {
+        return function () {
+            return $this->toArray();
+        };
+    }
 
     public function toObject()
     {
        return $this->getResult(QueryBuilder::HYDRATE_OBJECT);
     }
 
+    public function toLazyObject(): callable
+    {
+        return function () {
+            return $this->toObject();
+        };
+    }
+
     public function toReadOnlyObject()
     {
-        return $this->getResult(QueryBuilder::HYDRATE_OBJECT_READONLY)  ;
+        return $this->getResult(QueryBuilder::HYDRATE_OBJECT_READONLY) ;
+    }
+
+    public function toLazyReadOnlyObject(): callable
+    {
+        return function () {
+            return $this->toReadOnlyObject();
+        };
     }
 
     public function toCount(): int

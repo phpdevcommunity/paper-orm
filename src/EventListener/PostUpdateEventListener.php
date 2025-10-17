@@ -3,13 +3,13 @@
 namespace PhpDevCommunity\PaperORM\EventListener;
 
 use PhpDevCommunity\PaperORM\Assigner\AutoIncrementAssigner;
-use PhpDevCommunity\PaperORM\Event\Create\PostCreateEvent;
+use PhpDevCommunity\PaperORM\Event\Update\PostUpdateEvent;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\AutoIncrementColumn;
 
-class PostCreateEventListener
+class PostUpdateEventListener
 {
-    public function __invoke(PostCreateEvent $event)
+    public function __invoke(PostUpdateEvent $event)
     {
         $entity = $event->getEntity();
         $em = $event->getEm();

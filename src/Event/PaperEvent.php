@@ -6,8 +6,9 @@ use PhpDevCommunity\Listener\Event;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\EntityManagerInterface;
 
-class PreCreateEvent extends Event
+abstract class PaperEvent extends Event
 {
+
     private EntityManagerInterface $em;
     private EntityInterface $entity;
 
@@ -36,4 +37,5 @@ class PreCreateEvent extends Event
     {
         return $this->em;
     }
+
 }

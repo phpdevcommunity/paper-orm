@@ -28,8 +28,6 @@ final class QueryBuilder
     private SchemaInterface $schema;
     private EntityMemcachedCache $cache;
 
-    private string $primaryKey;
-
     private AliasGenerator $aliasGenerator;
     private array $select = [];
     private array $where = [];
@@ -42,13 +40,12 @@ final class QueryBuilder
 
     private array $params = [];
 
-    public function __construct(EntityManagerInterface $em, string $primaryKey = 'id')
+    public function __construct(EntityManagerInterface $em)
     {
         $this->platform = $em->getPlatform();
         $this->schema = $this->platform->getSchema();;
         $this->cache = $em->getCache();
         $this->aliasGenerator = new AliasGenerator();
-        $this->primaryKey = $primaryKey;
     }
 
     public function getResultIterator(string $hydrationMode = self::HYDRATE_OBJECT): iterable
@@ -314,7 +311,16 @@ final class QueryBuilder
             $properties = ColumnMapper::getColumns($entityName);
         }
         $columns = $this->convertPropertiesToColumns($entityName, $properties);
-        $joinQl = new JoinQL($this->platform->getConnection()->getPdo(), $this->primaryKey);
+        $primaryKey = ColumnMapper::getPrimaryKeyColumnName($entityName);
+        $primaryKeyQuoted = $this->schema->quote($primaryKey);
+        if (!in_array($primaryKeyQuoted, $columns)) {
+            $columns[] = $primaryKeyQuoted;
+        }
+        if ($columns[0] !== $primaryKeyQuoted) {
+            $columns = array_unique([$primaryKeyQuoted, ...$columns]);
+        }
+
+        $joinQl = new JoinQL($this->platform->getConnection()->getPdo(), $primaryKey);
         $joinQl->select($this->schema->quote($table), $alias, $columns);
         foreach ($this->joins as $join) {
             $fromAlias = $join['fromAlias'];

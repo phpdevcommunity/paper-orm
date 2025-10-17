@@ -7,7 +7,8 @@ use PhpDevCommunity\PaperORM\Assigner\SlugAssigner;
 use PhpDevCommunity\PaperORM\Assigner\TimestampAssigner;
 use PhpDevCommunity\PaperORM\Assigner\TokenAssigner;
 use PhpDevCommunity\PaperORM\Assigner\UuidAssigner;
-use PhpDevCommunity\PaperORM\Event\PreCreateEvent;
+
+use PhpDevCommunity\PaperORM\Event\Create\PreCreateEvent;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\AutoIncrementColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\SlugColumn;

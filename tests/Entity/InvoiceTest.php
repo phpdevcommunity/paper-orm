@@ -35,8 +35,7 @@ class InvoiceTest implements EntityInterface
         return [
             (new PrimaryKeyColumn())->bindProperty('id'),
             (new AutoIncrementColumn(null, 'invoice.number', 6, 'INV-{YYYY}-'))->bindProperty('number'),
-            (new AutoIncrementColumn(null, 'invoice.code', 8, null))->bindProperty('code'),
-            (new JoinColumn('post_id', PostTest::class))->bindProperty('post'),
+            (new AutoIncrementColumn(null, 'invoice.code', 8, null))->bindProperty('code')
         ];
     }
 

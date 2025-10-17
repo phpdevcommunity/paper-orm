@@ -55,6 +55,7 @@ class PersistAndFlushTest extends TestCase
         $em->persist($user);
         $em->flush();
 
+
         $this->assertStringLength($user->getToken(), 32);
         $this->assertNotNull($user->getId());
         $this->assertInstanceOf(\DateTimeInterface::class, $user->getCreatedAt());
