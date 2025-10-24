@@ -27,17 +27,15 @@ final class QueryBuilder
     private PlatformInterface $platform;
     private SchemaInterface $schema;
     private EntityMemcachedCache $cache;
-
     private AliasGenerator $aliasGenerator;
     private array $select = [];
     private array $where = [];
+    private array $rawWhere = [];
     private array $orderBy = [];
-
     private array $joins = [];
     private array $joinsAlreadyAdded = [];
     private ?int $firstResult = null;
     private ?int $maxResults = null;
-
     private array $params = [];
 
     public function __construct(EntityManagerInterface $em)
@@ -53,6 +51,11 @@ final class QueryBuilder
         foreach ($this->buildSqlQuery()->getResultIterator() as $item) {
             yield $this->hydrate([$item], $hydrationMode)[0];
         }
+    }
+
+    public function getArrayResult(): array
+    {
+        return $this->getResult(self::HYDRATE_ARRAY);
     }
 
     public function getResult(string $hydrationMode = self::HYDRATE_OBJECT): array
@@ -110,6 +113,16 @@ final class QueryBuilder
         return $this;
     }
 
+    public function rawWhere(string $sql): self
+    {
+        if (empty($this->select)) {
+            throw new LogicException('Select must be called before rawWhere()');
+        }
+
+        $this->rawWhere[] = $sql;
+        return $this;
+    }
+
     public function orderBy(string $sort, string $order = 'ASC'): self
     {
         $this->orderBy[] = [
@@ -134,6 +147,7 @@ final class QueryBuilder
     public function resetWhere(): self
     {
         $this->where = [];
+        $this->rawWhere = [];
         return $this;
     }
 
@@ -157,6 +171,18 @@ final class QueryBuilder
     public function innerJoin(string $fromAliasOrEntityName, string $targetEntityName, ?string $property = null): self
     {
         return $this->join('INNER', $fromAliasOrEntityName, $targetEntityName, $property);
+    }
+
+    public function joinSelect(string ...$columns): self
+    {
+        if (empty($this->joins)) {
+            throw new LogicException(
+                'You must call the innerJoin() or leftJoin() method first to define columns to select'
+            );
+        }
+        $index = \array_key_last($this->joins);
+        $this->joins[$index]['columnsToSelect'] = $columns;
+        return $this;
     }
 
     public function setFirstResult(?int $firstResult): self
@@ -209,6 +235,7 @@ final class QueryBuilder
                     'alias' => $alias,
                     'targetEntity' => $targetEntityName,
                     'targetTable' => $this->getTableName($targetEntityName),
+                    'columnsToSelect' => null,
                     'fromEntityName' => $fromEntityName,
                     'fromTable' => $this->getTableName($fromEntityName),
                     'fromAlias' => $fromAlias,
@@ -327,6 +354,7 @@ final class QueryBuilder
             $fromAlias = $join['fromAlias'];
             $targetTable = $join['targetTable'];
             $targetEntity = $join['targetEntity'];
+            $columnsToSelect = $join['columnsToSelect'];
             $alias = $join['alias'];
             /**
              * @var JoinColumn|OneToMany $column
@@ -336,8 +364,19 @@ final class QueryBuilder
             $type = $join['type'];
             $name = null;
 
-            $columns = $this->convertPropertiesToColumns($targetEntity, ColumnMapper::getColumns($targetEntity));
-            $joinQl->addSelect($alias, $columns);
+            $columns = [];
+
+
+            if ($join['columnsToSelect'] === null) {
+                $columns = $this->convertPropertiesToColumns($targetEntity, ColumnMapper::getColumns($targetEntity));
+            }elseif (!empty($columnsToSelect)) {
+                $columns = $this->convertPropertiesToColumns($targetEntity, $columnsToSelect);
+            }
+
+            if (!empty($columns)) {
+                $joinQl->addSelect($alias, $columns);
+            }
+
             $criteria = [];
             if ($column instanceof JoinColumn) {
                 $criteria = [$column->getName() => $column->getReferencedColumnName()];
@@ -369,6 +408,10 @@ final class QueryBuilder
 
         foreach ($this->where as $where) {
             $joinQl->where($this->resolveExpression($where));
+        }
+
+        foreach ($this->rawWhere as $rawWhere) {
+            $joinQl->where($rawWhere);
         }
 
         foreach ($this->orderBy as $orderBy) {

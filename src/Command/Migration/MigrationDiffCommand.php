@@ -84,10 +84,12 @@ class MigrationDiffCommand implements CommandInterface
             $io->listKeyValues(array_merge($normalEntities, $systemEntities));
         }
 
+        $executed = false;
         $fileApp = $this->paperMigration->generateMigrationFromEntities($normalEntities);
         if ($fileApp === null) {
             $io->info('No application migration file was generated — schema already in sync.');
         } else {
+            $executed = true;
             $io->success('✔ Application migration file generated: ' . $fileApp);
         }
 
@@ -95,6 +97,7 @@ class MigrationDiffCommand implements CommandInterface
         if ($fileSystem === null) {
             $io->info('No system migration changes detected.');
         } else {
+            $executed = true;
             $io->success('✔ System migration file generated: ' . $fileSystem);
         }
 
@@ -114,6 +117,8 @@ class MigrationDiffCommand implements CommandInterface
                 $io->listKeyValues($lines);
             }
         }
-        $io->success('Migration diff process completed successfully.');
+        if ($executed) {
+            $io->success('Migration diff process completed successfully.');
+        }
     }
 }

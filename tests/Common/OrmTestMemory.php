@@ -25,12 +25,12 @@ class OrmTestMemory extends TestCase
     {
         foreach (DataBaseHelperTest::drivers() as  $params) {
             $em = EntityManager::createFromConfig(PaperConfiguration::fromArray($params));
-            DataBaseHelperTest::init($em, 1000, false);
+            DataBaseHelperTest::init($em, 5000, false);
             $memory = memory_get_usage();
             $users = $em->getRepository(UserTest::class)
                 ->findBy()
                 ->toObject();
-            $this->assertStrictEquals(1000, count($users));
+            $this->assertStrictEquals(5000, count($users));
             foreach ($users as $user) {
                 $this->assertInstanceOf(UserTest::class, $user);
                 $this->assertNotEmpty($user);
