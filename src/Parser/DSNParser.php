@@ -24,10 +24,8 @@ final class DSNParser
             if ($path === '' || $path === 'memory' || $path === ':memory:') {
                 $memory = true;
                 $path = null;
-            } else {
-                if (str_starts_with($rest, '///')) {
+            } elseif (str_starts_with($rest, '///')) {
                     $path = '/' . $path;
-                }
             }
 
             return [
@@ -54,7 +52,10 @@ final class DSNParser
         $port = isset($params['port']) ? (int) $params['port'] : null;
         $user = $params['user'] ?? null;
         $password = $params['pass'] ?? null;
-        $path = isset($params['path']) ? ltrim($params['path'], '/') : null;
+        $path = $params['path'] ?? null;
+        if ($path !== null && $path[0] === '/') {
+            $path = substr($path, 1);
+        }
         $isMemory = ($path === 'memory' || $path === ':memory:');
 
         return [

@@ -58,5 +58,22 @@ class DSNParserTest extends TestCase
             ]],
             DSNParser::parse('sqlite:///app.db?mode=ro&cache=shared')
         );
+
+        $this->assertEquals(
+            [
+                'driver' => 'sql',
+                'host' => '127.0.0.1',
+                'port' => 5002,
+                'user' => 'root',
+                'password' => '',
+                'path' => '/dbs/mydb',
+                'memory' => false,
+                'options' =>
+                    [
+                        'charset_utf8' => '1',
+                    ],
+            ],
+            DSNParser::parse('sql://root:@127.0.0.1:5002//dbs/mydb?charset_utf8=1')
+        );
     }
 }

@@ -78,7 +78,7 @@ class DatabaseShowTablesCommandTest extends TestCase
         }));
 
         $this->assertEquals(0, $code);
-        $this->assertEquals(16, count($out));
+        $this->assertEquals(18, count($out));
 
         $out = [];
         $code = $runner->run(new CommandParser(['', 'paper:show:tables', 'post', '--columns']), new Output(function ($message) use(&$out) {
@@ -86,7 +86,7 @@ class DatabaseShowTablesCommandTest extends TestCase
         }));
 
         $this->assertEquals(0, $code);
-        $this->assertEquals(62, count($out));
+        $this->assertEquals(132, count($out));
 
 
         $platform->dropDatabase();
