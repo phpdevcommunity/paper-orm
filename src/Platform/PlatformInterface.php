@@ -74,7 +74,6 @@ interface PlatformInterface
     /**
      * @param string $tableName
      * @param array<Column> $columns
-     * @param array $options
      * @return int
      */
     public function createTable(string $tableName, array $columns): int;
@@ -91,11 +90,29 @@ interface PlatformInterface
     public function convertForeignKeyRuleStringToCode(?string $rule): int;
     public function getMaxLength(): int;
     public function getPrefixIndexName(): string;
+    public function getPrefixUniqIndexName(): string;
     public function getPrefixForeignKeyName(): string;
     public function diff(string $tableName, array $columns, array $indexes): DatabaseSchemaDiffMetadata;
     public function getSchema(): SchemaInterface;
     public function supportsTransactionalDDL(): bool;
 
     public function getConnection(): PaperConnection;
+    /**
+     * Indicates whether this Platform automatically creates indexes
+     * for JoinColumns when generating tables.
+     */
+    public function autoCreateIndexJoinColumns(): bool;
+
+    /**
+     * Indicates whether this Platform automatically creates indexes
+     * for PrimaryKey columns when generating tables.
+     */
+    public function autoCreateIndexPrimaryKeys(): bool;
+
+    /**
+     * Indicates whether this Platform automatically creates indexes
+     * for columns with a unique constraint (that are neither PK nor JoinColumn).
+     */
+    public function autoCreateIndexUniqueColumns(): bool;
 }
 

@@ -110,25 +110,11 @@ class ColumnMetadata
     public static function fromColumn(
         Column $column,
         string $sqlType,
+        ?ForeignKeyMetadata $foreignKeyMetadata = null,
         ?string $defaultFirstArgument = null,
         ?string $defaultSecondArgument = null
     ): self
     {
-        $foreignKeyMetadata = null;
-        if ($column instanceof JoinColumn) {
-            $targetEntity = $column->getTargetEntity();
-            if (is_subclass_of($targetEntity, EntityInterface::class)) {
-                $tableName = EntityMapper::getTable($targetEntity);
-                $foreignKeyMetadata = ForeignKeyMetadata::fromArray([
-                    'name' => null,
-                    'columns' => [$column->getName()],
-                    'referenceTable' => $tableName,
-                    'referenceColumns' => [$column->getReferencedColumnName()],
-                    'onDelete' => $column->getOnDelete(),
-                    'onUpdate' => $column->getOnUpdate(),
-                ]);
-            }
-        }
         $arguments = [];
         if ($column->getFirstArgument()) {
             $arguments[] = $column->getFirstArgument();
@@ -168,20 +154,6 @@ class ColumnMetadata
             $data['foreignKeyMetadata'] ?? null,
         $data['comment'] ?? null,
             $data['attributes'] ?? []
-        );
-    }
-
-    public function replaceForeignKey(ForeignKeyMetadata $foreignKey): self
-    {
-        return new self(
-            $this->getName(),
-            $this->getType(),
-            $this->isPrimary(),
-            $this->isNullable(),
-            $this->getDefaultValue(),
-            $foreignKey,
-            $this->getComment(),
-            $this->getAttributes()
         );
     }
 

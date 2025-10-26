@@ -18,7 +18,6 @@ abstract class Column
     private $defaultValue;
     private ?string $firstArgument;
     private ?string $secondArgument;
-    private ?Index $index = null;
 
      public function __construct(
           string $property,
@@ -120,13 +119,6 @@ abstract class Column
         return $this->convertToDatabase($this->getDefaultValue());
     }
 
-    public function getIndex(): ?Index
-    {
-        if ($this->index === null && ($this instanceof JoinColumn || $this->isUnique())) {
-            $this->index = new Index([$this->getName()], $this->isUnique());
-        }
-        return $this->index;
-    }
 
     /**
      * Converts a value to its corresponding database representation.

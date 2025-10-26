@@ -229,6 +229,11 @@ class SqlitePlatform extends AbstractPlatform
         return 'ix_';
     }
 
+    public function getPrefixUniqIndexName(): string
+    {
+        return 'uniq_';
+    }
+
     public function getPrefixForeignKeyName(): string
     {
         return 'fk_';
@@ -343,5 +348,20 @@ class SqlitePlatform extends AbstractPlatform
     public function getConnection(): PaperConnection
     {
         return $this->connection;
+    }
+
+    public function autoCreateIndexJoinColumns(): bool
+    {
+        return true;
+    }
+
+    public function autoCreateIndexPrimaryKeys(): bool
+    {
+        return false;
+    }
+
+    public function autoCreateIndexUniqueColumns(): bool
+    {
+        return true;
     }
 }

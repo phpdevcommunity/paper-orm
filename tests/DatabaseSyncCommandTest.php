@@ -67,7 +67,6 @@ class DatabaseSyncCommandTest extends TestCase
 
         $this->assertEquals(0, $code);
         $this->assertStringContains( implode(' ', $out), "✔ Executed:");
-//
         $out = [];
         $code = $runner->run(new CommandParser(['', 'paper:database:sync']), new Output(function ($message) use(&$out) {
             $out[] = $message;

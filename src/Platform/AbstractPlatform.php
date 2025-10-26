@@ -4,7 +4,11 @@ namespace PhpDevCommunity\PaperORM\Platform;
 
 use LogicException;
 use PhpDevCommunity\PaperORM\Collection\ObjectStorage;
+use PhpDevCommunity\PaperORM\Entity\EntityInterface;
+use PhpDevCommunity\PaperORM\Mapper\EntityMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\Column;
+use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
+use PhpDevCommunity\PaperORM\Mapping\Column\PrimaryKeyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Index;
 use PhpDevCommunity\PaperORM\Metadata\ColumnMetadata;
 use PhpDevCommunity\PaperORM\Metadata\DatabaseSchemaDiffMetadata;
@@ -37,27 +41,43 @@ abstract class AbstractPlatform implements PlatformInterface
         $mapping = $mappings[$className];
         $sqlType = $mapping['type'];
         $args = $mapping['args'];
-        $columnMetadata = ColumnMetadata::fromColumn($column, $sqlType,$args[0] ?? null, $args[1] ??  null);
-        if ($columnMetadata->getForeignKeyMetadata() && $columnMetadata->getForeignKeyMetadata()->getName() === null) {
-            $columnForeignKey = $columnMetadata->getForeignKeyMetadata();
-            return $columnMetadata->replaceForeignKey(
-                ForeignKeyMetadata::fromForeignKeyMetadataOverrideName(
-                    $columnForeignKey,
-                     $this->generateForeignKeyName($tableName, $columnForeignKey->getColumns())
-                )
-            );
+        $foreignKeyMetadata = null;
+        if ($this->getSchema()->supportsForeignKeyConstraints() && $column instanceof JoinColumn) {
+            $targetEntity = $column->getTargetEntity();
+            if (is_subclass_of($targetEntity, EntityInterface::class)) {
+                $referenceTable = EntityMapper::getTable($targetEntity);
+                $foreignKeyMetadata = ForeignKeyMetadata::fromArray([
+                    'name' => $this->generateForeignKeyName($tableName, [$column->getName()]),
+                    'columns' => [$column->getName()],
+                    'referenceTable' => $referenceTable,
+                    'referenceColumns' => [$column->getReferencedColumnName()],
+                    'onDelete' => $column->getOnDelete(),
+                    'onUpdate' => $column->getOnUpdate(),
+                ]);
+            }
         }
-        return $columnMetadata;
+        return ColumnMetadata::fromColumn($column, $sqlType, $foreignKeyMetadata, $args[0] ?? null, $args[1] ?? null);
     }
 
     /**
      * @param string $tableName
      * @param array<Column> $columns
      * @param array<Index> $indexes
-     * @return void
+     * @return DatabaseSchemaDiffMetadata
      */
     final public function diff(string $tableName, array $columns, array $indexes): DatabaseSchemaDiffMetadata
     {
+
+        foreach ($columns as $column) {
+            if ($column->isUnique() && $this->autoCreateIndexUniqueColumns()) {
+                $indexes[] = new Index([$column->getName()], true);
+            } elseif ($column instanceof JoinColumn && $this->autoCreateIndexJoinColumns()) {
+                $indexes[] = new Index([$column->getName()], $column->isUnique());
+            } elseif ($column instanceof PrimaryKeyColumn && $this->autoCreateIndexPrimaryKeys()) {
+                $indexes[] = new Index([$column->getName()], true);
+            }
+        }
+
         list(
             $columnsToAdd,
             $columnsToUpdate,
@@ -132,7 +152,7 @@ abstract class AbstractPlatform implements PlatformInterface
                         $foreignKeyToDrop[] = $foreignKeysExisting[$foreignKeyName];
                         $foreignKeyToAdd[] = $columnForeignKey;
                     }
-                }else {
+                } else {
                     $foreignKeyToAdd[] = $columnForeignKey;
                 }
 
@@ -176,6 +196,10 @@ abstract class AbstractPlatform implements PlatformInterface
      */
     private function diffIndexes(string $tableName, array $indexes): array
     {
+        if ($this->getSchema()->supportsIndexes() === false) {
+            return [[], [], [], []];
+        }
+
         $indexesFromTable = new ObjectStorage($this->listTableIndexes($tableName));
         $indexesToAdd = [];
         $indexesToUpdate = [];
@@ -183,7 +207,12 @@ abstract class AbstractPlatform implements PlatformInterface
 
         $indexesExisting = [];
         foreach ($indexes as $index) {
-            $indexMetadata = new IndexMetadata($tableName, $index->getName() ?: $this->generateIndexName($tableName, $index->getColumns()), $index->getColumns(), $index->isUnique());
+            $indexMetadata = new IndexMetadata(
+                $tableName,
+                $index->getName() ?: $this->generateIndexName($tableName, $index->getColumns(), $index->isUnique()),
+                $index->getColumns(),
+                $index->isUnique()
+            );
             $indexFound = $indexesFromTable->findOneByMethod('getName', $indexMetadata->getName());
             if ($indexFound) {
                 if ($indexMetadata->toArray() != $indexFound->toArray()) {
@@ -205,13 +234,14 @@ abstract class AbstractPlatform implements PlatformInterface
     }
 
 
-    final protected function generateIndexName(string $tableName, array $columnNames): string
+    final protected function generateIndexName(string $tableName, array $columnNames, bool $unique): string
     {
         $hash = implode('', array_map(static function ($column) {
             return dechex(crc32($column));
         }, array_merge([$tableName], $columnNames)));
 
-        return strtoupper(substr($this->getPrefixIndexName() . $hash, 0, $this->getMaxLength()));
+        $prefix = $unique ? $this->getPrefixUniqIndexName() : $this->getPrefixIndexName();
+        return strtoupper(substr($prefix . $hash, 0, $this->getMaxLength()));
     }
 
     final protected function generateForeignKeyName(string $tableName, array $columnNames): string

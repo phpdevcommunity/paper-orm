@@ -2,7 +2,6 @@
 
 namespace PhpDevCommunity\PaperORM\Platform;
 
-use InvalidArgumentException;
 use LogicException;
 use PhpDevCommunity\PaperORM\Mapping\Column\AnyColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\AutoIncrementColumn;
@@ -222,6 +221,11 @@ class MariaDBPlatform extends AbstractPlatform
         return 'ix_';
     }
 
+    public function getPrefixUniqIndexName(): string
+    {
+        return 'uniq_';
+    }
+
     public function getPrefixForeignKeyName(): string
     {
         return 'fk_';
@@ -346,5 +350,20 @@ class MariaDBPlatform extends AbstractPlatform
             }
         }
         return $result;
+    }
+
+    public function autoCreateIndexJoinColumns(): bool
+    {
+        return true;
+    }
+
+    public function autoCreateIndexPrimaryKeys(): bool
+    {
+        return false;
+    }
+
+    public function autoCreateIndexUniqueColumns(): bool
+    {
+        return true;
     }
 }

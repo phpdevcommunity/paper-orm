@@ -47,9 +47,6 @@ class PlatformDiffTest extends TestCase
             (new BoolColumn('is_active'))->bindProperty('active'),
         ];
         $rows = $platform->createTable('user', $columns);
-//        var_dump($rows);
-//        exit();
-
         $diff = $platform->diff('user', $columns, [] );
         $this->assertEmpty($diff->getColumnsToAdd());
         $this->assertEmpty($diff->getColumnsToUpdate());

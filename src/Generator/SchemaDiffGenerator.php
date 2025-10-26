@@ -58,19 +58,6 @@ final class SchemaDiffGenerator
              */
             $columns = $tableData['columns'];
             $indexes = $tableData['indexes'];
-
-            if ($schema->supportsIndexes()) {
-                foreach ($columns as $column) {
-                    if (!$column->getIndex()) {
-                        continue;
-                    }
-                    $indexes[] = $column->getIndex();
-                }
-            } else {
-                $indexes = [];
-            }
-
-
             $diff = $this->platform->diff($tableName, $columns, $indexes);
             $columnsToAdd = $diff->getColumnsToAdd();
             $columnsToUpdate = $diff->getColumnsToUpdate();
