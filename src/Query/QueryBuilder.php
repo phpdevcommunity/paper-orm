@@ -472,11 +472,11 @@ final class QueryBuilder
     private function hydrate(array $data, string $hydrationMode): array
     {
         if ($hydrationMode === self::HYDRATE_OBJECT) {
-            $hydrator = new EntityHydrator($this->cache);
+            $hydrator = new EntityHydrator($this->schema, $this->cache);
         } elseif ($hydrationMode === self::HYDRATE_OBJECT_READONLY) {
-            $hydrator = new ReadOnlyEntityHydrator();
+            $hydrator = new ReadOnlyEntityHydrator($this->schema);
         } else {
-            $hydrator = new ArrayHydrator();
+            $hydrator = new ArrayHydrator($this->schema);
         }
         $collection = [];
         foreach ($data as $item) {

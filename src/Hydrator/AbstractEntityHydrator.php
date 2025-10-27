@@ -8,9 +8,11 @@ use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
 use PhpDevCommunity\PaperORM\Proxy\ProxyInterface;
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 
 abstract class AbstractEntityHydrator
 {
+    abstract protected function getSchema(): SchemaInterface;
     abstract protected function instantiate(string $class, array $data): object;
 
     /**
@@ -82,7 +84,7 @@ abstract class AbstractEntityHydrator
                 continue;
             }
 
-            $property->setValue($object, $column->convertToPHP($value));
+            $property->setValue($object, $column->convertToPHP($value, $this->getSchema()));
         }
 
         if ($object instanceof ProxyInterface) {

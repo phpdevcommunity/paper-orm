@@ -9,13 +9,16 @@ use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
 use PhpDevCommunity\PaperORM\Mapping\OneToMany;
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 use ReflectionClass;
 
 final class ArrayHydrator
 {
+    private SchemaInterface $schema;
 
-    public function __construct()
+    public function __construct(SchemaInterface $schema)
     {
+        $this->schema = $schema;
     }
 
     public function hydrate(string $object, array $data): array
@@ -64,9 +67,9 @@ final class ArrayHydrator
                 unset($storage);
                 continue;
             }
-            $value =  $column->convertToPHP($value);
+            $value =  $column->convertToPHP($value, $this->schema);
             if ($value instanceof \DateTimeInterface) {
-                $value = $column->convertToDatabase($value);
+                $value = $column->convertToDatabase($value, $this->schema);
             }
             $result[$propertyName] = $value;
         }

@@ -2,10 +2,15 @@
 
 namespace PhpDevCommunity\PaperORM\Types;
 
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
+
 abstract class Type
 {
-    final public function __construct()
+    private SchemaInterface $schema;
+
+    final public function __construct(SchemaInterface $schema)
     {
+        $this->schema = $schema;
     }
 
     /**
@@ -19,5 +24,11 @@ abstract class Type
      * @return mixed
      */
     abstract public function convertToPHP($value);
+
+
+    final protected function getSchema(): SchemaInterface
+    {
+        return $this->schema;
+    }
 
 }

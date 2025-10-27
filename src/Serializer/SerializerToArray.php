@@ -6,16 +6,20 @@ use LogicException;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\DateTimeColumn;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 use ReflectionClass;
 use ReflectionException;
 
 final class SerializerToArray
 {
     private object $entity;
+    private SchemaInterface $schema;
 
-    public function __construct(object $entity)
+
+    public function __construct(object $entity, SchemaInterface $schema)
     {
         $this->entity = $entity;
+        $this->schema = $schema;
     }
 
     public function serialize(): array
@@ -48,12 +52,12 @@ final class SerializerToArray
             }
 
             if ($column instanceof DateTimeColumn) {
-                $data[$propertyName] = $column->convertToDatabase($value);
+                $data[$propertyName] = $column->convertToDatabase($value, $this->schema);
                 continue;
             }
 
             if ($column instanceof JoinColumn) {
-                $data[$propertyName] = (new self($value))->serialize();
+                $data[$propertyName] = (new self($value, $this->schema))->serialize();
                 continue;
             }
 
@@ -62,5 +66,4 @@ final class SerializerToArray
         }
         return $data;
     }
-
 }

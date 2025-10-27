@@ -3,9 +3,13 @@
 namespace PhpDevCommunity\PaperORM\Serializer;
 
 
+use InvalidArgumentException;
 use PhpDevCommunity\PaperORM\Entity\EntityInterface;
 use PhpDevCommunity\PaperORM\Mapper\ColumnMapper;
 use PhpDevCommunity\PaperORM\Mapping\Column\JoinColumn;
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
+use ReflectionClass;
+use ReflectionException;
 
 final class SerializerToDb
 {
@@ -14,16 +18,19 @@ final class SerializerToDb
      */
     private object $entity;
 
-    public function __construct(object $entity)
+    private SchemaInterface $schema;
+
+    public function __construct(object $entity, SchemaInterface $schema)
     {
         $this->entity = $entity;
+        $this->schema = $schema;
     }
 
-    public function serialize(array $columnsToSerialize = [] ): array
+    public function serialize(array $columnsToSerialize = []): array
     {
         $entity = $this->entity;
         $columns = ColumnMapper::getColumns(get_class($entity));
-        $reflection = new \ReflectionClass($entity);
+        $reflection = new ReflectionClass($entity);
         $dbData = [];
         foreach ($columns as $column) {
             if (!empty($columnsToSerialize) && !in_array($column->getProperty(), $columnsToSerialize)) {
@@ -33,11 +40,11 @@ final class SerializerToDb
             try {
                 if (false !== ($reflectionParent = $reflection->getParentClass()) && $reflectionParent->hasProperty($column->getProperty())) {
                     $property = $reflectionParent->getProperty($column->getProperty());
-                }else {
+                } else {
                     $property = $reflection->getProperty($column->getProperty());
                 }
-            }    catch (\ReflectionException $e) {
-                throw new \InvalidArgumentException("Property {$column->getProperty()} not found in class " . get_class($entity));
+            } catch (ReflectionException $e) {
+                throw new InvalidArgumentException("Property {$column->getProperty()} not found in class " . get_class($entity));
             }
 
             $property->setAccessible(true);
@@ -49,7 +56,7 @@ final class SerializerToDb
                 }
             }
 
-            $dbData[$key] = $column->convertToDatabase($value) ;
+            $dbData[$key] = $column->convertToDatabase($value,$this->schema);
 
         }
         return $dbData;

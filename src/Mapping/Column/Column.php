@@ -3,6 +3,7 @@
 namespace PhpDevCommunity\PaperORM\Mapping\Column;
 
 use PhpDevCommunity\PaperORM\Mapping\Index;
+use PhpDevCommunity\PaperORM\Schema\SchemaInterface;
 use PhpDevCommunity\PaperORM\Tools\NamingStrategy;
 use PhpDevCommunity\PaperORM\Types\StringType;
 use PhpDevCommunity\PaperORM\Types\Type;
@@ -114,11 +115,6 @@ abstract class Column
         return $this->defaultValue;
     }
 
-    public function getDefaultValueToDatabase()
-    {
-        return $this->convertToDatabase($this->getDefaultValue());
-    }
-
 
     /**
      * Converts a value to its corresponding database representation.
@@ -127,11 +123,11 @@ abstract class Column
      * @return mixed The converted value.
      * @throws \ReflectionException
      */
-    final function convertToDatabase($value)
+    final function convertToDatabase($value, SchemaInterface $schema)
     {
         $type = $this->getType();
         if (is_subclass_of($type, Type::class)) {
-            $value = TypeFactory::create($type)->convertToDatabase($value);
+            $value = TypeFactory::create($schema, $type)->convertToDatabase($value);
         }
         return $value;
     }
@@ -143,11 +139,11 @@ abstract class Column
      * @return mixed The converted PHP value.
      * @throws \ReflectionException
      */
-    final function convertToPHP($value)
+    final function convertToPHP($value, SchemaInterface $schema)
     {
         $type = $this->getType();
         if (is_subclass_of($type, Type::class)) {
-            $value = TypeFactory::create($type)->convertToPHP($value);
+            $value = TypeFactory::create($schema, $type)->convertToPHP($value);
         }
         return $value;
     }

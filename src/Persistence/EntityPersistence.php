@@ -58,7 +58,7 @@ class EntityPersistence
         $qb = QueryBuilder::insert($schema->quote($tableName));
 
         $values = [];
-        foreach ((new SerializerToDb($entity))->serialize() as $key => $value) {
+        foreach ((new SerializerToDb($entity, $schema))->serialize() as $key => $value) {
             $qb->setValue($schema->quote($key), ":$key");
             $values[$key] = $value;
         }
@@ -67,7 +67,7 @@ class EntityPersistence
         $lastInsertId = $conn->getPdo()->lastInsertId();
         if ($rows > 0) {
             $primaryKeyColumn = ColumnMapper::getPrimaryKeyColumnName($entity);
-            (new ReadOnlyEntityHydrator())->hydrate($entity, [$primaryKeyColumn => $lastInsertId]);
+            (new ReadOnlyEntityHydrator($schema))->hydrate($entity, [$primaryKeyColumn => $lastInsertId]);
             $this->managed->attach($entity);
             if ($this->dispatcher) {
                 $this->dispatcher->dispatch(new PostCreateEvent($this->em, $entity));
@@ -113,7 +113,7 @@ class EntityPersistence
             );
 
         $values = [];
-        foreach ((new SerializerToDb($entity))->serialize($propertiesModified) as $key => $value) {
+        foreach ((new SerializerToDb($entity, $schema))->serialize($propertiesModified) as $key => $value) {
             $qb->set($schema->quote($key), ":$key");
             $values[$key] = $value;
         }
