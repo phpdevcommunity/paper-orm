@@ -348,7 +348,7 @@ final class QueryBuilder
             $columns = array_unique([$primaryKeyQuoted, ...$columns]);
         }
 
-        $joinQl = new JoinQL($this->platform->getConnection()->getPdo(), $primaryKey);
+        $joinQl = new JoinQL($this->platform->getConnection()->getPdo(), $primaryKey, $this->platform->getMaxLength());
         $joinQl->select($this->schema->quote($table), $alias, $columns);
         foreach ($this->joins as $join) {
             $fromAlias = $join['fromAlias'];
