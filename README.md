@@ -267,6 +267,7 @@ Créez un fichier de configuration simple pour connecter PaperORM à votre base 
 <?php
 require_once 'vendor/autoload.php';
 
+
 use PhpDevCommunity\PaperORM\EntityManager;
 use PhpDevCommunity\PaperORM\PaperConfiguration;
 

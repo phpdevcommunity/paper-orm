@@ -102,10 +102,17 @@ final class SchemaDiffGenerator
                     );
                 }
             }
+
+
+            foreach ($indexesToDelete as $index) {
+                $sqlUp[] = $schema->dropIndex($index);
+                $sqlDown[] = $schema->createIndex($diff->getOriginalIndex($index->getName()));
+            }
             foreach ($indexesToAdd as $index) {
                 $sqlUp[] = $schema->createIndex($index);
                 $sqlDown[] = $schema->dropIndex($index);
             }
+
             foreach ($foreignKeyToAdd as $foreignKey) {
                 if ($schema->supportsAddForeignKey()) {
                     $sqlUp[] = $schema->createForeignKeyConstraint($tableName, $foreignKey);
@@ -126,11 +133,6 @@ final class SchemaDiffGenerator
                         get_class($schema)
                     );
                 }
-            }
-
-            foreach ($indexesToDelete as $index) {
-                $sqlUp[] = $schema->dropIndex($index);
-                $sqlDown[] = $schema->createIndex($diff->getOriginalIndex($index->getName()));
             }
 
             foreach ($columnsToDelete as $column) {
