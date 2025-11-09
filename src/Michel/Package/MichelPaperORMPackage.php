@@ -16,6 +16,7 @@ use PhpDevCommunity\PaperORM\EntityManagerInterface;
 use PhpDevCommunity\PaperORM\Migration\PaperMigration;
 use PhpDevCommunity\PaperORM\PaperConfiguration;
 use Psr\Container\ContainerInterface;
+use Psr\Log\LoggerInterface;
 
 class MichelPaperORMPackage implements PackageInterface
 {
@@ -23,14 +24,18 @@ class MichelPaperORMPackage implements PackageInterface
     {
         return [
             PaperConfiguration::class => static function (ContainerInterface $container) {
-                return PaperConfiguration::fromDsn(
+                $paperConf = PaperConfiguration::fromDsn(
                     $container->get('paper.orm.dsn'),
                     $container->get('paper.orm.debug')
-                )
-                    ->withLogger($container->get('paper.orm.logger'));
+                );
+                $logger = $container->get('paper.orm.logger');
+                if ($logger) {
+                    $paperConf->withLogger($container->get('paper.orm.logger'));
+                }
+                return $paperConf;
             },
             EntityDirCollector::class => static function (ContainerInterface $container) {
-                return EntityDirCollector::bootstrap([$container->get('paper.entity_dir')]);
+                return EntityDirCollector::bootstrap([$container->get('paper.orm.entity_dir')]);
             },
             EntityManagerInterface::class => static function (ContainerInterface $container) {
                 return $container->get(EntityManager::class);
@@ -64,7 +69,12 @@ class MichelPaperORMPackage implements PackageInterface
             'paper.orm.debug' => static function (ContainerInterface $container) {
                 return $container->get('michel.debug');
             },
-            'paper.orm.logger' => null,
+            'paper.orm.logger' => static function (ContainerInterface $container) {
+                if ($container->has(LoggerInterface::class)) {
+                    return  $container->get(LoggerInterface::class);
+                }
+                return null;
+            },
             'paper.orm.entity_dir' => getenv('PAPER_ORM_ENTITY_DIR') ?: static function (ContainerInterface $container) {
                 $folder = $container->get('michel.project_dir') . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'Entity';
                 if (!is_dir($folder)) {
@@ -88,12 +98,17 @@ class MichelPaperORMPackage implements PackageInterface
         return [];
     }
 
+    public function getControllerSources(): array
+    {
+        return [];
+    }
+
     public function getListeners(): array
     {
         return [];
     }
 
-    public function getCommands(): array
+    public function getCommandSources(): array
     {
         return [
             DatabaseCreateCommand::class,
